@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Baustellenbericht v3.0 - Fliesen Unger Süd</title>
+    <title>Baustellenbericht v3.1 - Fliesen Unger Süd</title>
     
     <!-- PWA Meta-Tags -->
     <meta name="theme-color" content="#667eea">
@@ -43,7 +43,7 @@
     </script>
     
     <!-- jsQR Library für QR-Code Fallback (v1.15 Feature) -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    
     
     <!-- v2.0: Capacitor für Native-App Funktionalität -->
     <script>
@@ -52,7 +52,7 @@
         window.isCapacitorApp = typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
         
         // Log für Debugging
-        console.log('🚀 Baustellenbericht v3.0');
+        console.log('🚀 Baustellenbericht v3.1');
         console.log('📱 Capacitor verfügbar:', window.isCapacitorApp ? 'JA (Native App)' : 'NEIN (Browser)');
     </script>
     
@@ -1996,7 +1996,7 @@
                 <div id="gpsStatus" class="gps-status">📍 Klicke auf "🔄 GPS neu erfassen" um Standort zu ermitteln</div>
                 <button type="button" class="btn btn-secondary" onclick="getGPS()">🔄 GPS neu erfassen</button>
                 <button type="button" class="btn btn-primary" onclick="openMapPicker()" style="margin-left: 10px;">🗺️ Karte öffnen</button>
-                <button type="button" class="btn btn-success" onclick="startQRScanner()" style="margin-left: 10px;">📷 QR-Code scannen</button>
+                
                 <input type="hidden" id="gpsLat">
                 <input type="hidden" id="gpsLon">
             </div>
@@ -2036,8 +2036,8 @@
                 <div id="taetigkeitenChips" class="chips-container"></div>
                 <button type="button" class="btn btn-success" onclick="addSelectedToForm()">➕ Zur Tabelle hinzufügen</button>
                 <button type="button" class="btn btn-secondary" onclick="addTaetigkeitViaVoice()">🎤 Per Sprache hinzufügen</button>
-                <button type="button" class="btn btn-secondary" onclick="toggleAudioRecording()" style="margin-left: 10px;">🔴 Audio aufnehmen</button>
-                <span id="audioRecordingIndicator"></span>
+                
+                
             </div>
             
             <!-- MATERIAL HELPER -->
@@ -3831,16 +3831,19 @@
                 return;
             }
             
-            // Collect all activities from table
+            // Collect all activities from table - v3.1 fixed
             const tbody = document.getElementById('taetigkeitenTable');
             const rows = tbody.querySelectorAll('tr');
             const taetigkeiten = [];
             
             rows.forEach(row => {
-                const textarea = row.querySelector('textarea');
-                const text = textarea ? textarea.value.trim() : row.cells[2].textContent.trim();
-                if (text) {
-                    taetigkeiten.push(text);
+                if (row.cells && row.cells.length >= 3) {
+                    const cell = row.cells[2]; // Dritte Spalte = Tätigkeit
+                    const textarea = cell.querySelector('textarea');
+                    const text = textarea ? textarea.value.trim() : cell.textContent.trim();
+                    if (text && text !== 'Tätigkeit') {
+                        taetigkeiten.push(text);
+                    }
                 }
             });
             
@@ -3849,7 +3852,7 @@
             const signature1 = canvas1 ? canvas1.toDataURL('image/jpeg', 0.8) : '';
             const signature2 = canvas2 ? canvas2.toDataURL('image/jpeg', 0.8) : '';
             
-            // v3.0: Berechne Gesamtstunden und km für Statistiken
+            // v3.1: Berechne Gesamtstunden und km für Statistiken
             const gesamtStunden = personalListe.reduce((sum, p) => sum + (p.anzahl * p.stunden), 0);
             const gesamtKm = fahrzeugListe.reduce((sum, f) => sum + (f.anzahl * f.km), 0);
             
@@ -4926,28 +4929,14 @@
             recognition.maxAlternatives = 1;
             
             recognition.onstart = function() {
-                showToast('🎤 Tätigkeit diktieren...', 'success');
+                showToast('🎤 Bitte jetzt sprechen...', 'success');
             };
             
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
                 
-                // Add directly to table
-                const tbody = document.getElementById('taetigkeitenTable');
-                const datum = document.getElementById('datum').value;
-                const newRow = tbody.insertRow();
-                newRow.className = 'editable-row';
-                
-                newRow.innerHTML = `
-                    <td contenteditable="true">${taetigkeitenRowCounter}</td>
-                    <td>${datum}</td>
-                    <td contenteditable="true">${transcript}</td>
-                    <td contenteditable="true"></td>
-                    <td contenteditable="true"></td>
-                `;
-                
-                taetigkeitenRowCounter++;
-                showToast('✅ Tätigkeit hinzugefügt', 'success');
+                // v3.1: Zeige Textverbesserungs-Modal mit 5 Vorschlägen
+                showTextVerbesserungModal(transcript, 'taetigkeit');
             };
             
             recognition.onerror = function(event) {
@@ -6209,7 +6198,7 @@ brew install mkcert</div>
             
         })();
         
-        console.log('✅ v3.0 Alle Features geladen');
+        console.log('✅ v3.1 Alle Features geladen');
         
         // ===== V3.0 NEUE FUNKTIONEN =====
         
@@ -6722,7 +6711,252 @@ brew install mkcert</div>
             }
         });
         
-        console.log('✅ v3.0 Features geladen: Stoppuhr, Wetter, Navigation, Vorlagen, Projekte, Statistiken, Kalender, Dark Mode');
+        // ===== v3.1: TEXTVERBESSERUNGS-SYSTEM MIT 5 VORSCHLÄGEN =====
+        
+        // Baustellenbericht-spezifische Verbesserungen
+        const textVerbesserungen = {
+            // Typische Autokorrektur für Baustellenbegriffe
+            autokorrektur: {
+                'fliessen': 'Fliesen',
+                'fließen': 'Fliesen',
+                'ferlegung': 'Verlegung',
+                'fertigen': 'fertigen',
+                'grundirung': 'Grundierung',
+                'grundirung': 'Grundierung',
+                'fugen': 'Fugen',
+                'fuggen': 'Fugen',
+                'abdichtung': 'Abdichtung',
+                'abdichtun': 'Abdichtung',
+                'estrich': 'Estrich',
+                'esstrich': 'Estrich',
+                'spachtel': 'Spachtel',
+                'schpachtel': 'Spachtel',
+                'silikon': 'Silikon',
+                'silikoon': 'Silikon',
+                'boden': 'Boden',
+                'wand': 'Wand',
+                'ecke': 'Ecke',
+                'sockel': 'Sockel',
+                'fuge': 'Fuge'
+            },
+            
+            // Professionelle Formulierungen basierend auf Keywords
+            vorschlaege: {
+                'fliesen': [
+                    'Fliesen fachgerecht verlegt',
+                    'Fliesenverlegung nach Herstellervorgabe durchgeführt',
+                    'Fliesenbelag im Dünnbettverfahren verlegt',
+                    'Wandfliesen im Verbund gesetzt',
+                    'Bodenfliesen mit Nivellierung verlegt'
+                ],
+                'fugen': [
+                    'Fugenarbeiten durchgeführt',
+                    'Fugenmörtel fachgerecht eingebracht',
+                    'Silikonfugen in Eckbereichen ausgeführt',
+                    'Dehnungsfugen angelegt',
+                    'Fugenbild kontrolliert und nachgearbeitet'
+                ],
+                'grundierung': [
+                    'Untergrund grundiert',
+                    'Tiefengrund aufgetragen',
+                    'Haftgrund nach Vorschrift aufgebracht',
+                    'Grundierung vollflächig aufgetragen',
+                    'Untergrundvorbereitung mit Grundierung abgeschlossen'
+                ],
+                'abdichtung': [
+                    'Abdichtung fachgerecht ausgeführt',
+                    'Verbundabdichtung im Spritzwasserbereich aufgebracht',
+                    'Dichtband in Eckbereichen eingearbeitet',
+                    'Flüssigabdichtung zweilagig aufgetragen',
+                    'Bodenabdichtung nach DIN 18534 ausgeführt'
+                ],
+                'spachtel': [
+                    'Spachtelarbeiten durchgeführt',
+                    'Untergrund gespachtelt und geglättet',
+                    'Ausgleichsmasse aufgebracht',
+                    'Unebenheiten ausgeglichen',
+                    'Spachtelmasse nach Herstellerangabe verarbeitet'
+                ],
+                'entfernen': [
+                    'Altbelag entfernt und entsorgt',
+                    'Bestandsfliesen abgestemmt',
+                    'Alte Beschichtung entfernt',
+                    'Untergrund von Rückständen befreit',
+                    'Demontagearbeiten durchgeführt'
+                ],
+                'reinigung': [
+                    'Baustelle gereinigt',
+                    'Abschlussreinigung durchgeführt',
+                    'Fliesenbelag gereinigt und übergeben',
+                    'Bauendreinigung ausgeführt',
+                    'Arbeitsflächen gesäubert'
+                ],
+                'vorbereitung': [
+                    'Untergrund vorbereitet',
+                    'Vorbereitungsarbeiten abgeschlossen',
+                    'Untergrundprüfung durchgeführt',
+                    'Unterboden für Verlegung vorbereitet',
+                    'Vorarbeiten nach Plan ausgeführt'
+                ],
+                'default': [
+                    'Arbeiten nach Auftrag ausgeführt',
+                    'Tätigkeit fachgerecht durchgeführt',
+                    'Arbeitsschritte planmäßig abgeschlossen',
+                    'Leistung gemäß Auftrag erbracht',
+                    'Arbeiten dokumentiert'
+                ]
+            }
+        };
+        
+        // Text automatisch korrigieren
+        function autokorrigiereText(text) {
+            let korrigiert = text;
+            
+            // Ersten Buchstaben groß
+            korrigiert = korrigiert.charAt(0).toUpperCase() + korrigiert.slice(1);
+            
+            // Bekannte Fehler korrigieren
+            for (const [falsch, richtig] of Object.entries(textVerbesserungen.autokorrektur)) {
+                const regex = new RegExp(falsch, 'gi');
+                korrigiert = korrigiert.replace(regex, richtig);
+            }
+            
+            return korrigiert;
+        }
+        
+        // 5 Verbesserungsvorschläge generieren
+        function generiereVorschlaege(text) {
+            const textLower = text.toLowerCase();
+            let vorschlaege = [];
+            
+            // Finde passende Kategorie
+            for (const [keyword, suggestions] of Object.entries(textVerbesserungen.vorschlaege)) {
+                if (keyword !== 'default' && textLower.includes(keyword)) {
+                    vorschlaege = [...suggestions];
+                    break;
+                }
+            }
+            
+            // Falls keine Kategorie gefunden, nutze Default
+            if (vorschlaege.length === 0) {
+                vorschlaege = [...textVerbesserungen.vorschlaege.default];
+            }
+            
+            // Original (korrigiert) als erste Option
+            const korrigiert = autokorrigiereText(text);
+            
+            return {
+                original: text,
+                korrigiert: korrigiert,
+                vorschlaege: vorschlaege
+            };
+        }
+        
+        // Modal für Textverbesserung anzeigen
+        function showTextVerbesserungModal(text, typ) {
+            const ergebnis = generiereVorschlaege(text);
+            
+            // Entferne altes Modal falls vorhanden
+            const altesModal = document.getElementById('textVerbesserungModal');
+            if (altesModal) altesModal.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'textVerbesserungModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.8);
+                z-index: 10002;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 16px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+                    <div style="padding: 20px; border-bottom: 1px solid #e5e7eb;">
+                        <h3 style="margin: 0; color: #1e293b;">🎤 Erkannter Text</h3>
+                    </div>
+                    
+                    <div style="padding: 20px;">
+                        <!-- Original -->
+                        <div style="background: #f1f5f9; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+                            <div style="font-size: 12px; color: #64748b; margin-bottom: 5px;">Original:</div>
+                            <div style="color: #334155;">"${ergebnis.original}"</div>
+                        </div>
+                        
+                        <!-- Korrigiert -->
+                        <div style="background: #dcfce7; padding: 12px; border-radius: 8px; margin-bottom: 20px; cursor: pointer; border: 2px solid #22c55e;" onclick="waehleTextvorschlag('${ergebnis.korrigiert.replace(/'/g, "\\'")}', '${typ}')">
+                            <div style="font-size: 12px; color: #166534; margin-bottom: 5px;">✅ Korrigiert (empfohlen):</div>
+                            <div style="color: #166534; font-weight: bold;">"${ergebnis.korrigiert}"</div>
+                        </div>
+                        
+                        <!-- 5 Vorschläge -->
+                        <div style="font-size: 14px; color: #64748b; margin-bottom: 10px;">📝 Professionelle Formulierungen:</div>
+                        ${ergebnis.vorschlaege.map((v, i) => `
+                            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s;" 
+                                 onclick="waehleTextvorschlag('${v.replace(/'/g, "\\'")}', '${typ}')"
+                                 onmouseover="this.style.borderColor='#667eea'; this.style.background='#eef2ff';"
+                                 onmouseout="this.style.borderColor='transparent'; this.style.background='#f8fafc';">
+                                <span style="color: #667eea; font-weight: bold;">${i + 1}.</span> ${v}
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div style="padding: 15px 20px; border-top: 1px solid #e5e7eb; display: flex; gap: 10px;">
+                        <button onclick="document.getElementById('textVerbesserungModal').remove()" 
+                                style="flex: 1; padding: 12px; background: #e5e7eb; color: #475569; border: none; border-radius: 8px; font-size: 14px; cursor: pointer;">
+                            ❌ Abbrechen
+                        </button>
+                        <button onclick="waehleTextvorschlag('${ergebnis.korrigiert.replace(/'/g, "\\'")}', '${typ}')" 
+                                style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;">
+                            ✅ Übernehmen
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        // Gewählten Vorschlag übernehmen
+        function waehleTextvorschlag(text, typ) {
+            // Modal schließen
+            const modal = document.getElementById('textVerbesserungModal');
+            if (modal) modal.remove();
+            
+            if (typ === 'taetigkeit') {
+                // In Tätigkeiten-Tabelle einfügen
+                const tbody = document.getElementById('taetigkeitenTable');
+                const datum = document.getElementById('datum').value;
+                const newRow = tbody.insertRow();
+                newRow.className = 'editable-row';
+                
+                newRow.innerHTML = `
+                    <td contenteditable="true">${taetigkeitenRowCounter}</td>
+                    <td>${datum}</td>
+                    <td contenteditable="true">${text}</td>
+                    <td contenteditable="true"></td>
+                    <td contenteditable="true"></td>
+                `;
+                
+                taetigkeitenRowCounter++;
+                showToast('✅ Tätigkeit hinzugefügt: ' + text.substring(0, 30) + '...', 'success');
+            } else if (typ === 'material') {
+                // In Material-Feld einfügen
+                const field = document.getElementById('materialText');
+                if (field) {
+                    field.value += (field.value ? '\n' : '') + text;
+                    showToast('✅ Material hinzugefügt', 'success');
+                }
+            }
+        }
+        
+        console.log('✅ v3.1 Features geladen: Textverbesserung mit 5 Vorschlägen, Autokorrektur');
     </script>
     
 </body>
