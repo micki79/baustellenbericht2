@@ -8090,31 +8090,11 @@ brew install mkcert</div>
             return [...baustellenDatenbank.formulierungen.default];
         }
         
-        // ===== KI-VORSCHLÄGE MIT PUTER.JS =====
+        // ===== KI-VORSCHLÄGE DEAKTIVIERT =====
+        // Puter.js öffnet externe Login-Seite - daher deaktiviert
         async function generiereKIVorschlaege(text) {
-            try {
-                if (typeof puter === 'undefined') {
-                    console.log('Puter.js nicht verfügbar');
-                    return [];
-                }
-                
-                const prompt = `Du bist ein Experte für Baustellenberichte im Fliesenlegerhandwerk.
-Der Nutzer hat per Sprache eingegeben: "${text}"
-
-Erstelle 5 professionelle Formulierungen für einen offiziellen Baustellenbericht.
-Kurz und prägnant (max. 12 Wörter pro Vorschlag).
-Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
-                
-                const response = await puter.ai.chat(prompt, { model: 'gpt-4o-mini' });
-                if (response) {
-                    return response.split('\n')
-                        .map(line => line.replace(/^[\d\.\-\*]+\s*/, '').trim())
-                        .filter(line => line.length > 5 && line.length < 150)
-                        .slice(0, 5);
-                }
-            } catch (error) {
-                console.log('KI nicht verfügbar:', error.message);
-            }
+            // KI-Vorschläge deaktiviert - nur lokale Vorschläge verwenden
+            console.log('KI-Vorschläge deaktiviert (keine externe Seite öffnen)');
             return [];
         }
         
@@ -8169,14 +8149,7 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
                                 </div>
                             `).join('')}
                         </div>
-                        <div id="kiVorschlaegeContainer" style="margin-top:15px;">
-                            <div style="font-size:13px;color:#8b5cf6;margin-bottom:8px;">🤖 KI-Vorschläge laden...</div>
-                            <div style="text-align:center;padding:15px;">
-                                <div style="display:inline-block;width:20px;height:20px;border:3px solid #e5e7eb;border-top-color:#8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
-                            </div>
-                        </div>
-                        <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
-                    </div>
+                                            </div>
                     <div style="padding:12px 20px 20px;display:flex;gap:10px;">
                         <button onclick="document.getElementById('textVerbesserungModal').remove()" 
                                 style="flex:1;padding:12px;background:#e5e7eb;color:#475569;border:none;border-radius:8px;cursor:pointer;">❌ Abbrechen</button>
@@ -8187,27 +8160,7 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
             `;
             
             document.body.appendChild(modal);
-            
-            // KI laden
-            const kiVorschlaege = await generiereKIVorschlaege(taetigkeit);
-            const kiContainer = document.getElementById('kiVorschlaegeContainer');
-            if (kiContainer) {
-                if (kiVorschlaege.length > 0) {
-                    kiContainer.innerHTML = `
-                        <div style="font-size:13px;color:#8b5cf6;margin-bottom:8px;font-weight:500;">🤖 KI-Vorschläge:</div>
-                        ${kiVorschlaege.map(v => `
-                            <div style="background:#faf5ff;padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:2px solid transparent;" 
-                                 onclick="waehleTextvorschlag('${v.replace(/'/g, "\\'")}', '${typ}')"
-                                 onmouseover="this.style.borderColor='#8b5cf6';this.style.background='#ede9fe';"
-                                 onmouseout="this.style.borderColor='transparent';this.style.background='#faf5ff';">
-                                ${v}
-                            </div>
-                        `).join('')}
-                    `;
-                } else {
-                    kiContainer.innerHTML = '<div style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">KI-Vorschläge nicht verfügbar (offline)</div>';
-                }
-            }
+            // KI-Vorschläge deaktiviert - nur lokale Vorschläge
         }
         
         // ===== VORSCHLAG ÜBERNEHMEN =====
