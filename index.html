@@ -3101,18 +3101,23 @@
         async function getIPLocation() {
             console.log('🔄 IP-Geolocation wird versucht...');
 
+            // Nur HTTPS-fähige APIs (ip-api.com funktioniert nur mit HTTP)
             const apis = [
                 {
                     url: 'https://ipapi.co/json/',
                     parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name })
                 },
                 {
-                    url: 'https://ip-api.com/json/',
-                    parse: d => ({ lat: d.lat, lon: d.lon, city: d.city, country: d.country })
-                },
-                {
                     url: 'https://ipwho.is/',
                     parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country })
+                },
+                {
+                    url: 'https://freeipapi.com/api/json',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.cityName, country: d.countryName })
+                },
+                {
+                    url: 'https://api.ipdata.co/?api-key=test',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name })
                 }
             ];
 
@@ -6997,8 +7002,8 @@ brew install mkcert</div>
         
         // Beim Laden initialisieren
         document.addEventListener('DOMContentLoaded', function() {
-            loadWetter();
-            
+            // loadWetter wird bereits von autoLoadLocation() aufgerufen
+
             // Dark Mode Button
             if (!document.querySelector('.dark-mode-toggle')) {
                 const btn = document.createElement('button');
