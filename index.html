@@ -1900,8 +1900,7 @@
             display: inline;
         }
     </style>
-    <!-- v3.3 Ultra-Mega-DB: Puter.js für kostenlose KI -->
-    <script src="https://js.puter.com/v2/"></script>
+    <!-- Puter.js entfernt - öffnete externe Login-Seite -->
 </head>
 <body>
     <!-- MIKROFON PERMISSION PRIMING MODAL -->
@@ -2043,7 +2042,7 @@
                 <input type="text" id="projektnummerHelper" placeholder="z.B. P-2024-001">
                 <label>Baustelle:</label>
                 <input type="text" id="baustelleHelper" placeholder="z.B. Aldi Sindelfingen">
-                <button type="button" class="btn btn-success" onclick="copyProjektInfo()">✅“ Übernehmen</button>
+                <button type="button" class="btn btn-success" onclick="copyProjektInfo()">✅ Übernehmen</button>
             </div>
             
             <!-- GPS -->
@@ -2272,6 +2271,25 @@
                 </div>
             </div>
             
+            <!-- TÄTIGKEITEN SECTION -->
+            <div class="rapport-section">
+                <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🔨 Tätigkeiten:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('taetigkeit')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttTaetigkeitUnten"
+                            onmousedown="startPushToTalk('taetigkeit', this)"
+                            onmouseup="stopPushToTalk('taetigkeit', this)"
+                            onmouseleave="stopPushToTalk('taetigkeit', this)"
+                            ontouchstart="startPushToTalk('taetigkeit', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('taetigkeit', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- HAUPTTABELLE -->
             <table class="rapport-table">
                 <thead>
@@ -2291,30 +2309,52 @@
             <!-- MATERIAL SECTION -->
             <div class="rapport-section">
                 <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Material:</span>
-                    <button type="button" class="btn btn-secondary" onclick="startVoiceInput('materialText')" style="padding: 5px 10px; font-size: 12px;">🎤 Spracheingabe</button>
+                    <span>📦 Material:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('material')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttMaterialUnten"
+                            onmousedown="startPushToTalk('materialText', this)"
+                            onmouseup="stopPushToTalk('materialText', this)"
+                            onmouseleave="stopPushToTalk('materialText', this)"
+                            ontouchstart="startPushToTalk('materialText', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('materialText', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
                 </div>
                 <textarea id="materialText" placeholder="Material hier eingeben oder oben auswählen..."></textarea>
             </div>
             
             <!-- PERSONAL SECTION -->
             <div class="rapport-section">
-                <div class="rapport-section-title">Personal:</div>
+                <div class="rapport-section-title">👷 Personal:</div>
                 <div id="personalFormText" style="background: white; padding: 8px; min-height: 60px; font-size: 11px; border: none;"></div>
             </div>
             
             <!-- MASCHINEN SECTION -->
             <div class="rapport-section">
                 <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Maschinen:</span>
-                    <button type="button" class="btn btn-secondary" onclick="startVoiceInput('maschinenText')" style="padding: 5px 10px; font-size: 12px;">🎤 Spracheingabe</button>
+                    <span>🔧 Maschinen & Werkzeuge:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('werkzeuge')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttMaschinenUnten"
+                            onmousedown="startPushToTalk('maschinenText', this)"
+                            onmouseup="stopPushToTalk('maschinenText', this)"
+                            onmouseleave="stopPushToTalk('maschinenText', this)"
+                            ontouchstart="startPushToTalk('maschinenText', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('maschinenText', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
                 </div>
                 <textarea id="maschinenText" placeholder="Maschinen hier eingeben oder oben auswählen..."></textarea>
             </div>
             
             <!-- FOTOS IM FORMULAR -->
             <div id="photoSection" class="rapport-section hidden">
-                <div class="rapport-section-title">Fotos:</div>
+                <div class="rapport-section-title">📷 Fotos:</div>
                 <div id="formPhotoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>
             </div>
             
@@ -2466,8 +2506,8 @@
             </div>
         </div>
     </div>
-    
-    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+
+    <script>
         // ===== GLOBAL VARIABLES =====
         let selectedTaetigkeiten = [];
         let selectedMaterial = [];
@@ -2901,8 +2941,8 @@
             }
             
             setupSignaturePads();
-            // ANDROID FIX: GPS nur auf Button-Click, nicht automatisch!
-            // getGPS(); // ENTFERNT - User muss Button klicken
+            // Auto-GPS beim Laden (IP-basiert als Fallback)
+            autoLoadLocation();
             updateRapportNummer();
             
             const today = new Date();
@@ -2942,36 +2982,170 @@
                 loadBerichte();
             }
         }
-        
-        // ===== v1.15: IP-GEOLOCATION FALLBACK =====
-        async function getIPLocation() {
-            console.log('🔄 GPS failed, trying IP-Geolocation fallback...');
+
+        // ===== WETTER FUNKTIONEN (aus Script 2 hierher verschoben) =====
+        function updateWetterUI(ort, temp, desc, icon = '🌤️') {
+            const wetterIcon = document.getElementById('wetterIcon');
+            const wetterTemp = document.getElementById('wetterTemp');
+            const wetterDesc = document.getElementById('wetterDesc');
+            const wetterOrt = document.getElementById('wetterOrt');
+            if (wetterIcon) wetterIcon.textContent = icon;
+            if (wetterTemp) wetterTemp.textContent = temp + '°C';
+            if (wetterDesc) wetterDesc.textContent = desc;
+            if (wetterOrt) wetterOrt.textContent = '📍 ' + ort;
+        }
+
+        function getWetterIcon(code) {
+            if (code === 0) return '☀️';
+            if (code <= 3) return '🌤️';
+            if (code <= 48) return '☁️';
+            if (code <= 57) return '🌧️';
+            if (code <= 67) return '🌧️';
+            if (code <= 77) return '❄️';
+            if (code <= 82) return '🌧️';
+            if (code >= 95) return '⛈️';
+            return '🌤️';
+        }
+
+        function getWetterBeschreibung(code) {
+            if (code === 0) return 'Klar';
+            if (code <= 3) return 'Teilweise bewölkt';
+            if (code <= 48) return 'Bewölkt/Nebel';
+            if (code <= 57) return 'Nieselregen';
+            if (code <= 67) return 'Regen';
+            if (code <= 77) return 'Schnee';
+            if (code <= 82) return 'Starkregen';
+            if (code >= 95) return 'Gewitter';
+            return 'Wechselhaft';
+        }
+
+        async function loadWetter() {
             try {
-                const response = await fetch('https://ipapi.co/json/');
-                if (!response.ok) {
-                    throw new Error('IP-Geolocation API Error');
+                let lat = document.getElementById('gpsLat')?.value;
+                let lon = document.getElementById('gpsLon')?.value;
+                let city = null;
+
+                // Wenn kein GPS, versuche IP-basiert
+                if (!lat || !lon) {
+                    const ipLoc = await getIPLocation();
+                    if (ipLoc) {
+                        lat = ipLoc.lat;
+                        lon = ipLoc.lon;
+                        city = ipLoc.city;
+                    } else {
+                        updateWetterUI('Unbekannt', '--', 'Standort nicht verfügbar');
+                        return;
+                    }
                 }
-                const data = await response.json();
-                
-                console.log('✅ IP-Geolocation erfolgreich:', {
-                    city: data.city,
-                    country: data.country_name,
-                    lat: data.latitude,
-                    lon: data.longitude
-                });
-                
-                return {
-                    source: 'ip',
-                    lat: data.latitude,
-                    lon: data.longitude,
-                    accuracy: 20000, // ~20km Genauigkeit
-                    city: data.city,
-                    country: data.country_name
-                };
-            } catch (error) {
-                console.error('❌ IP-Geolocation fehlgeschlagen:', error);
-                return null;
+
+                // Wetter von Open-Meteo laden
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
+                const data = await res.json();
+
+                if (data.current) {
+                    const temp = Math.round(data.current.temperature_2m);
+                    const code = data.current.weather_code;
+                    const desc = getWetterBeschreibung(code);
+                    const icon = getWetterIcon(code);
+                    let ort = city || 'Dein Standort';
+
+                    updateWetterUI(ort, temp, desc, icon);
+
+                    if (code >= 61) {
+                        const widget = document.getElementById('wetterWidget');
+                        if (widget) widget.classList.add('wetter-warning');
+                    }
+                } else {
+                    updateWetterUI('Unbekannt', '--', 'Keine Wetterdaten');
+                }
+            } catch (e) {
+                console.log('Wetter-Fehler:', e);
+                updateWetterUI('Unbekannt', '--', 'Fehler beim Laden');
             }
+        }
+
+        // ===== AUTO-LOCATION BEIM SEITENAUFRUF =====
+        async function autoLoadLocation() {
+            const statusEl = document.getElementById('gpsStatus');
+            if (statusEl) {
+                statusEl.textContent = '📍 Standort wird ermittelt...';
+                statusEl.className = 'gps-status gps-loading';
+            }
+
+            try {
+                // IP-basiert versuchen (schnell, keine Permission nötig)
+                const ipLoc = await getIPLocation();
+                if (ipLoc && ipLoc.lat && ipLoc.lon) {
+                    document.getElementById('gpsLat').value = ipLoc.lat;
+                    document.getElementById('gpsLon').value = ipLoc.lon;
+                    if (statusEl) {
+                        statusEl.textContent = `📍 ${ipLoc.city || 'Standort'} (IP-basiert, ±20km)`;
+                        statusEl.className = 'gps-status gps-success';
+                    }
+                    updateGPSSourceBadge('ip', 20000);
+                    loadWetter();
+                    return;
+                }
+            } catch (e) {
+                console.log('Auto-Location fehlgeschlagen:', e);
+            }
+
+            if (statusEl) {
+                statusEl.textContent = '📍 Klicke auf "🔄 GPS neu erfassen" für genauen Standort';
+                statusEl.className = 'gps-status';
+            }
+            loadWetter();
+        }
+
+        // ===== v1.15: IP-GEOLOCATION FALLBACK (mit mehreren APIs) =====
+        async function getIPLocation() {
+            console.log('🔄 IP-Geolocation wird versucht...');
+
+            // Nur HTTPS-fähige APIs (ip-api.com funktioniert nur mit HTTP)
+            const apis = [
+                {
+                    url: 'https://ipapi.co/json/',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name })
+                },
+                {
+                    url: 'https://ipwho.is/',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country })
+                },
+                {
+                    url: 'https://freeipapi.com/api/json',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.cityName, country: d.countryName })
+                },
+                {
+                    url: 'https://api.ipdata.co/?api-key=test',
+                    parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city, country: d.country_name })
+                }
+            ];
+
+            for (const api of apis) {
+                try {
+                    const response = await fetch(api.url);
+                    if (!response.ok) continue;
+                    const data = await response.json();
+                    const parsed = api.parse(data);
+
+                    if (parsed.lat && parsed.lon) {
+                        console.log('✅ IP-Geolocation von:', api.url, parsed);
+                        return {
+                            source: 'ip',
+                            lat: parsed.lat,
+                            lon: parsed.lon,
+                            accuracy: 20000,
+                            city: parsed.city,
+                            country: parsed.country
+                        };
+                    }
+                } catch (e) {
+                    console.log('❌ API fehlgeschlagen:', api.url);
+                }
+            }
+
+            console.error('❌ Alle IP-Geolocation APIs fehlgeschlagen');
+            return null;
         }
         
         // ===== v1.15: GPS SOURCE INDICATOR =====
@@ -4239,7 +4413,7 @@
                     <div style="background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90%; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
                         <div style="padding: 20px; border-bottom: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
                             <h3 style="margin: 0;">📍 Standort auf Karte wählen</h3>
-                            <button onclick="closeMapPicker()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">✅• Schließen</button>
+                            <button onclick="closeMapPicker()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">❌ Schließen</button>
                         </div>
                         <div style="padding: 15px; background: #f3f4f6;">
                             <p style="margin: 0; font-size: 14px;">
@@ -5074,24 +5248,30 @@
             };
 
             recognition.onend = function() {
-                // Verarbeite finales Ergebnis
-                if (finalTranscript.trim()) {
+                // Kombiniere final + interim (falls vorhanden)
+                const gesamtText = (finalTranscript + interimTranscript).trim();
+
+                // Verarbeite Ergebnis
+                if (gesamtText) {
                     if (targetId === 'taetigkeit') {
                         // Für Tätigkeiten: Zeige Verbesserungs-Modal
-                        showTextVerbesserungModal(finalTranscript.trim(), 'taetigkeit');
+                        console.log('🎤 Spracheingabe erkannt:', gesamtText);
+                        showTextVerbesserungModal(gesamtText, 'taetigkeit');
                     } else {
                         // Für andere Felder: Text direkt einfügen
                         const targetElement = document.getElementById(targetId);
                         if (targetElement) {
                             const originalText = targetElement.dataset.originalText || '';
                             if (originalText) {
-                                targetElement.value = originalText + '\n' + finalTranscript.trim();
+                                targetElement.value = originalText + '\n' + gesamtText;
                             } else {
-                                targetElement.value = finalTranscript.trim();
+                                targetElement.value = gesamtText;
                             }
                             showToast('✅ Text übernommen', 'success');
                         }
                     }
+                } else {
+                    showToast('⚠️ Keine Sprache erkannt. Bitte erneut versuchen.', 'info');
                 }
 
                 cleanupPTT();
@@ -5150,10 +5330,6 @@
         }
 
         async function startVoiceInput(targetId) {
-            showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
-        }
-
-        function startVoiceInputHelper(targetId) {
             showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
         }
 
@@ -5243,12 +5419,21 @@
         
         // ===== TOAST =====
         function showToast(message, type = 'success') {
+            // Entferne existierende Toasts
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) existingToast.remove();
+
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
-            
+
+            // Farbe basierend auf Typ
+            if (type === 'success') toast.style.background = '#22c55e';
+            else if (type === 'error') toast.style.background = '#ef4444';
+            else if (type === 'info') toast.style.background = '#3b82f6';
+
             document.body.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
@@ -6439,68 +6624,7 @@ brew install mkcert</div>
                 showToast(`⏱️ Gestoppte Zeit: ${hours} Stunden`, 'info');
             }
         }
-        
-        // Wetter laden
-        async function loadWetter() {
-            try {
-                const lat = document.getElementById('gpsLat')?.value;
-                const lon = document.getElementById('gpsLon')?.value;
-                
-                if (!lat || !lon) {
-                    // Fallback: IP-basiert
-                    const ipRes = await fetch('https://ipapi.co/json/');
-                    const ipData = await ipRes.json();
-                    updateWetterUI(ipData.city || 'Unbekannt', 15, 'Standort wird ermittelt...');
-                    return;
-                }
-                
-                // Open-Meteo API (kostenlos, kein API-Key)
-                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
-                const data = await res.json();
-                
-                const temp = Math.round(data.current.temperature_2m);
-                const code = data.current.weather_code;
-                const desc = getWetterBeschreibung(code);
-                const icon = getWetterIcon(code);
-                
-                document.getElementById('wetterIcon').textContent = icon;
-                document.getElementById('wetterTemp').textContent = temp + '°C';
-                document.getElementById('wetterDesc').textContent = desc;
-                
-                // Prüfe auf Schlechtwetter
-                if (code >= 61) { // Regen/Schnee
-                    document.getElementById('wetterWidget').classList.add('wetter-warning');
-                    document.getElementById('wetterDesc').textContent = '⚠️ ' + desc + ' - Schlechtwetter!';
-                }
-            } catch (e) {
-                console.log('Wetter-Fehler:', e);
-            }
-        }
-        
-        function getWetterIcon(code) {
-            if (code === 0) return '☀️';
-            if (code <= 3) return '🌤️';
-            if (code <= 48) return '☁️';
-            if (code <= 57) return '🌧️';
-            if (code <= 67) return '🌧️';
-            if (code <= 77) return '❄️';
-            if (code <= 82) return '🌧️';
-            if (code >= 95) return '⛈️';
-            return '🌤️';
-        }
-        
-        function getWetterBeschreibung(code) {
-            if (code === 0) return 'Klar';
-            if (code <= 3) return 'Teilweise bewölkt';
-            if (code <= 48) return 'Bewölkt/Nebel';
-            if (code <= 57) return 'Nieselregen';
-            if (code <= 67) return 'Regen';
-            if (code <= 77) return 'Schnee';
-            if (code <= 82) return 'Starkregen';
-            if (code >= 95) return 'Gewitter';
-            return 'Wechselhaft';
-        }
-        
+
         // Navigation zur Baustelle
         function navigateToBaustelle() {
             const lat = document.getElementById('gpsLat')?.value;
@@ -6878,8 +7002,8 @@ brew install mkcert</div>
         
         // Beim Laden initialisieren
         document.addEventListener('DOMContentLoaded', function() {
-            loadWetter();
-            
+            // loadWetter wird bereits von autoLoadLocation() aufgerufen
+
             // Dark Mode Button
             if (!document.querySelector('.dark-mode-toggle')) {
                 const btn = document.createElement('button');
@@ -8084,31 +8208,11 @@ brew install mkcert</div>
             return [...baustellenDatenbank.formulierungen.default];
         }
         
-        // ===== KI-VORSCHLÄGE MIT PUTER.JS =====
+        // ===== KI-VORSCHLÄGE DEAKTIVIERT =====
+        // Puter.js öffnet externe Login-Seite - daher deaktiviert
         async function generiereKIVorschlaege(text) {
-            try {
-                if (typeof puter === 'undefined') {
-                    console.log('Puter.js nicht verfügbar');
-                    return [];
-                }
-                
-                const prompt = `Du bist ein Experte für Baustellenberichte im Fliesenlegerhandwerk.
-Der Nutzer hat per Sprache eingegeben: "${text}"
-
-Erstelle 5 professionelle Formulierungen für einen offiziellen Baustellenbericht.
-Kurz und prägnant (max. 12 Wörter pro Vorschlag).
-Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
-                
-                const response = await puter.ai.chat(prompt, { model: 'gpt-4o-mini' });
-                if (response) {
-                    return response.split('\n')
-                        .map(line => line.replace(/^[\d\.\-\*]+\s*/, '').trim())
-                        .filter(line => line.length > 5 && line.length < 150)
-                        .slice(0, 5);
-                }
-            } catch (error) {
-                console.log('KI nicht verfügbar:', error.message);
-            }
+            // KI-Vorschläge deaktiviert - nur lokale Vorschläge verwenden
+            console.log('KI-Vorschläge deaktiviert (keine externe Seite öffnen)');
             return [];
         }
         
@@ -8155,7 +8259,7 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
                         <div style="font-size:13px;color:#64748b;margin-bottom:8px;font-weight:500;">📚 Professionelle Formulierungen:</div>
                         <div id="lokaleVorschlaege">
                             ${lokaleVorschlaege.map(v => `
-                                <div style="background:#f8fafc;padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:2px solid transparent;" 
+                                <div style="background:#f8fafc;padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:2px solid transparent;"
                                      onclick="waehleTextvorschlag('${v.replace(/'/g, "\\'")}', '${typ}')"
                                      onmouseover="this.style.borderColor='#667eea';this.style.background='#eef2ff';"
                                      onmouseout="this.style.borderColor='transparent';this.style.background='#f8fafc';">
@@ -8163,13 +8267,21 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
                                 </div>
                             `).join('')}
                         </div>
-                        <div id="kiVorschlaegeContainer" style="margin-top:15px;">
-                            <div style="font-size:13px;color:#8b5cf6;margin-bottom:8px;">🤖 KI-Vorschläge laden...</div>
-                            <div style="text-align:center;padding:15px;">
-                                <div style="display:inline-block;width:20px;height:20px;border:3px solid #e5e7eb;border-top-color:#8b5cf6;border-radius:50%;animation:spin 1s linear infinite;"></div>
+
+                        <div style="margin-top:15px;border-top:1px solid #e5e7eb;padding-top:15px;">
+                            <div style="font-size:13px;color:#64748b;margin-bottom:8px;font-weight:500;">🏷️ Weitere Kategorien:</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;" id="kategorieButtons">
+                                <button onclick="zeigeKategorie('fliesen', '${typ}')" style="padding:6px 12px;background:#dbeafe;color:#1e40af;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🪨 Fliesen</button>
+                                <button onclick="zeigeKategorie('fugen', '${typ}')" style="padding:6px 12px;background:#fef3c7;color:#92400e;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🔲 Fugen</button>
+                                <button onclick="zeigeKategorie('silikon', '${typ}')" style="padding:6px 12px;background:#ddd6fe;color:#5b21b6;border:none;border-radius:6px;cursor:pointer;font-size:12px;">💧 Silikon</button>
+                                <button onclick="zeigeKategorie('abdichtung', '${typ}')" style="padding:6px 12px;background:#cffafe;color:#0e7490;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🛡️ Abdichtung</button>
+                                <button onclick="zeigeKategorie('grundierung', '${typ}')" style="padding:6px 12px;background:#dcfce7;color:#166534;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🎨 Grundierung</button>
+                                <button onclick="zeigeKategorie('spachteln', '${typ}')" style="padding:6px 12px;background:#fee2e2;color:#991b1b;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🔧 Spachteln</button>
+                                <button onclick="zeigeKategorie('demontage', '${typ}')" style="padding:6px 12px;background:#fef9c3;color:#854d0e;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🔨 Demontage</button>
+                                <button onclick="zeigeKategorie('reinigung', '${typ}')" style="padding:6px 12px;background:#f0fdf4;color:#15803d;border:none;border-radius:6px;cursor:pointer;font-size:12px;">🧹 Reinigung</button>
                             </div>
+                            <div id="kategorieVorschlaege" style="max-height:150px;overflow-y:auto;"></div>
                         </div>
-                        <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
                     </div>
                     <div style="padding:12px 20px 20px;display:flex;gap:10px;">
                         <button onclick="document.getElementById('textVerbesserungModal').remove()" 
@@ -8181,29 +8293,49 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
             `;
             
             document.body.appendChild(modal);
-            
-            // KI laden
-            const kiVorschlaege = await generiereKIVorschlaege(taetigkeit);
-            const kiContainer = document.getElementById('kiVorschlaegeContainer');
-            if (kiContainer) {
-                if (kiVorschlaege.length > 0) {
-                    kiContainer.innerHTML = `
-                        <div style="font-size:13px;color:#8b5cf6;margin-bottom:8px;font-weight:500;">🤖 KI-Vorschläge:</div>
-                        ${kiVorschlaege.map(v => `
-                            <div style="background:#faf5ff;padding:10px 12px;border-radius:8px;margin-bottom:6px;cursor:pointer;border:2px solid transparent;" 
-                                 onclick="waehleTextvorschlag('${v.replace(/'/g, "\\'")}', '${typ}')"
-                                 onmouseover="this.style.borderColor='#8b5cf6';this.style.background='#ede9fe';"
-                                 onmouseout="this.style.borderColor='transparent';this.style.background='#faf5ff';">
-                                ${v}
-                            </div>
-                        `).join('')}
-                    `;
-                } else {
-                    kiContainer.innerHTML = '<div style="font-size:12px;color:#94a3b8;text-align:center;padding:10px;">KI-Vorschläge nicht verfügbar (offline)</div>';
-                }
-            }
+            // KI-Vorschläge deaktiviert - nur lokale Vorschläge
         }
         
+        // ===== SCROLL ZU HELPER =====
+        function scrollToHelper(typ) {
+            let element;
+            if (typ === 'taetigkeit') {
+                element = document.getElementById('taetigkeitHaupt');
+            } else if (typ === 'material') {
+                element = document.getElementById('materialHaupt');
+            } else if (typ === 'werkzeuge') {
+                element = document.getElementById('werkzeugeHaupt');
+            }
+
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.focus();
+                showToast('⬆️ Wähle oben eine Kategorie', 'info');
+            }
+        }
+
+        // ===== KATEGORIE ANZEIGEN =====
+        function zeigeKategorie(kategorie, typ) {
+            const container = document.getElementById('kategorieVorschlaege');
+            if (!container) return;
+
+            const vorschlaege = baustellenDatenbank.formulierungen[kategorie] || [];
+
+            if (vorschlaege.length === 0) {
+                container.innerHTML = '<div style="color:#94a3b8;font-size:12px;padding:10px;text-align:center;">Keine Vorschläge für diese Kategorie</div>';
+                return;
+            }
+
+            container.innerHTML = vorschlaege.slice(0, 10).map(v => `
+                <div style="background:#f8fafc;padding:8px 12px;border-radius:6px;margin-bottom:4px;cursor:pointer;border:1px solid transparent;font-size:13px;"
+                     onclick="waehleTextvorschlag('${v.replace(/'/g, "\\'")}', '${typ}')"
+                     onmouseover="this.style.borderColor='#667eea';this.style.background='#eef2ff';"
+                     onmouseout="this.style.borderColor='transparent';this.style.background='#f8fafc';">
+                    ${v}
+                </div>
+            `).join('');
+        }
+
         // ===== VORSCHLAG ÜBERNEHMEN =====
         function waehleTextvorschlag(text, typ) {
             const stundenInput = document.getElementById('modalStunden');
@@ -8235,33 +8367,7 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
                 showToast('✅ Material übernommen', 'success');
             }
         }
-        
-        // ===== TOAST NOTIFICATION =====
-        function showToast(message, type = 'info') {
-            const existingToast = document.querySelector('.toast');
-            if (existingToast) existingToast.remove();
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 14px;
-                z-index: 10000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => toast.remove(), 3000);
-        }
-        
+
         // ===== INITIALISIERUNG =====
         document.addEventListener('DOMContentLoaded', function() {
             // Tab-Navigation
@@ -8295,10 +8401,10 @@ Antworte NUR mit den 5 Vorschlägen, einer pro Zeile, ohne Nummerierung.`;
             for (const arr of Object.values(baustellenDatenbank.formulierungen)) {
                 formCount += arr.length;
             }
-            console.log(`📊 Baustellenbericht v3.3 Ultra-Mega-Datenbank geladen:`);
+            console.log(`📊 Baustellenbericht v3.3.4 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
-            console.log(`   ✅ Puter.js KI-Integration verfügbar`);
+            console.log(`   ℹ️ KI deaktiviert (nur lokale Vorschläge)`);
         });
         
         

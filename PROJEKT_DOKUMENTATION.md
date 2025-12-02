@@ -2,12 +2,13 @@
 
 ## 📋 Projekt-Übersicht
 
-**App-Name:** Baustellenbericht App für Fliesen Unger Süd GmbH  
-**Aktuelle Version:** v1.16  
-**Datei:** `baustellenbericht_v1_16.html`  
-**Typ:** Single-File HTML Progressive Web App  
-**Sprache:** Deutsch  
+**App-Name:** Baustellenbericht App für Fliesen Unger Süd GmbH
+**Aktuelle Version:** v3.3.3 Ultra-Mega-DB
+**Datei:** `index.html`
+**Typ:** Single-File HTML Progressive Web App
+**Sprache:** Deutsch
 **Zielplattform:** Android Chrome (primär), Desktop Chrome (sekundär)
+**Live-URL:** https://micki79.github.io/baustellenbericht2/index.html
 
 ---
 
@@ -121,12 +122,17 @@ Wenn die App über `file://` oder `content://` geöffnet wird (z.B. aus Datei-Ma
 - ✅ Chip-basierte Mehrfachauswahl
 - ✅ Mengen und Einheiten
 
-### Spracheingabe (v1.13+)
+### Spracheingabe (v3.3.2 - Push-to-Talk)
 - ✅ Web Speech API Integration
-- ✅ Permission Priming (erklärender Dialog vor Browser-Anfrage)
+- ✅ **Push-to-Talk System** (Button gedrückt halten zum Sprechen)
+- ✅ Live-Vorschau während des Sprechens
+- ✅ Visuelles Feedback (roter pulsierender Button)
 - ✅ Tätigkeiten per Sprache hinzufügen
 - ✅ Material/Maschinen per Sprache eingeben
 - ✅ Audio-Aufnahme mit MediaRecorder
+- ✅ Touch-Support (ontouchstart/ontouchend)
+- ✅ Auswahl-Modal mit lokalen Vorschlägen
+- ❌ KI-Vorschläge deaktiviert (Puter.js öffnete externe Login-Seite)
 
 ### Personal & Fahrzeuge
 - ✅ Personal-Verwaltung (Anzahl, Typ, Stunden)
@@ -166,28 +172,54 @@ Wenn die App über `file://` oder `content://` geöffnet wird (z.B. aus Datei-Ma
 ## 📁 Dateistruktur
 
 ```
-baustellenbericht_v1_16.html    # Haupt-App (Single File, ~215KB, ~5.312 Zeilen)
-manifest.json                    # PWA Manifest (optional)
-service-worker.js               # Service Worker (optional, nur HTTPS)
-icon-192x192.png                # App Icon (optional)
+index.html                      # Haupt-App (Single File, ~360KB, ~8.300 Zeilen)
+PROJEKT_DOKUMENTATION.md        # Diese Dokumentation
+README.md                       # Kurze Projektbeschreibung
+manifest.json                   # PWA Manifest (optional)
+service-worker.js              # Service Worker (optional, nur HTTPS)
+icon-192x192.png               # App Icon (optional)
 ```
 
 ---
 
-## 🔑 Wichtige Code-Stellen (v1.16)
+## 🔑 Wichtige Code-Stellen (v3.3)
 
 | Funktion | Ca. Zeile | Beschreibung |
 |----------|-----------|--------------|
-| `detectProtocolV16()` | ~1885 | Erkennt Protokoll (file, content, http, https) |
-| `getIPLocationV16()` | ~1930 | Multi-API IP-Geolocation Fallback |
-| `getGPS()` | ~2050 | GPS High-Accuracy mit Multi-Messung |
-| `BrowserCapabilities` | ~1800 | Feature Detection Klasse |
-| `taetigkeitenData` | ~2100 | Dropdown-Daten Tätigkeiten |
-| `materialData` | ~2200 | Dropdown-Daten Material |
-| `werkzeugeData` | ~2300 | Dropdown-Daten Werkzeuge |
-| `generatePDF()` | ~4200 | PDF-Erstellung |
-| `saveBericht()` | ~3500 | Bericht speichern |
-| `setupSignaturePads()` | ~3300 | Unterschriften-Canvas |
+| `BrowserCapabilities` | ~2400 | Feature Detection Klasse |
+| `taetigkeitenData` | ~2570 | Dropdown-Daten Tätigkeiten |
+| `materialData` | ~2650 | Dropdown-Daten Material |
+| `werkzeugeData` | ~2720 | Dropdown-Daten Werkzeuge |
+| `getGPS()` | ~2916 | GPS High-Accuracy mit Multi-Messung |
+| `saveBericht()` | ~3820 | Bericht speichern |
+| `generatePDF()` | ~4500 | PDF-Erstellung |
+| **`startPushToTalk()`** | ~4983 | **NEU: Push-to-Talk starten** |
+| **`stopPushToTalk()`** | ~5117 | **NEU: Push-to-Talk stoppen** |
+| `showTextVerbesserungModal()` | ~8116 | Auswahl-Modal nach Spracheingabe |
+
+---
+
+## 🐛 Behobene Bugs (v3.3.3 - 02.12.2024)
+
+| Bug | Zeile | Korrektur |
+|-----|-------|-----------|
+| Extra Quote | 2046 | `✅" Übernehmen` → `✅ Übernehmen` |
+| Duplikat | 5203 | `startVoiceInputHelper` war doppelt definiert |
+| Duplikat | 8295 | `showToast` war doppelt definiert - verbessert & vereinheitlicht |
+| Fehlende Funktion | 6500 | `updateWetterUI()` hinzugefügt |
+| Falsches Emoji | 4283 | `✅• Schließen` → `❌ Schließen` |
+| Wetter | 6503-6556 | IP-basiertes Wetter lädt jetzt korrekt mit echten Koordinaten |
+
+## 🐛 Behobene Bugs (v3.3.1)
+
+| Bug | Zeile | Korrektur |
+|-----|-------|-----------|
+| CSS Fehler | 422 | `' ✅"'` → `' ✅'` |
+| Duplikat | 2834 | `datumDisplay2` wurde 2x gesetzt |
+| Tippfehler | 2700 | `Trepenprofil` → `Treppenprofil` |
+| Tippfehler | 2687 | `Echdichtband` → `Eckdichtband` |
+| Tippfehler | 2876 | `erfolg reich` → `erfolgreich` |
+| Version | 4085 | Backup-Version `1.11` → `3.3` |
 
 ---
 
@@ -202,6 +234,10 @@ icon-192x192.png                # App Icon (optional)
 | v1.14 | - | Eruda Debug, HTTPS Warning, Setup-Assistent |
 | v1.15 | - | QR-Scanner, MediaRecorder, GPS Source Badge |
 | v1.16 | 02.12.2024 | Verbesserte Protokoll-Erkennung, Multi-API IP-Fallback |
+| v3.3 | 02.12.2024 | Ultra-Mega-DB: Puter.js KI, Statistiken, Kalender, Projekte |
+| v3.3.1 | 02.12.2024 | **Push-to-Talk Spracheingabe**, Bugfixes (CSS, Tippfehler) |
+| v3.3.2 | 02.12.2024 | **Kategorien-Buttons** im Spracheingabe-Modal, KI deaktiviert |
+| v3.3.3 | 02.12.2024 | **Bugfixes**: Doppelte Funktionen entfernt, Wetter-API verbessert, updateWetterUI hinzugefügt |
 
 ---
 
@@ -243,7 +279,10 @@ icon-192x192.png                # App Icon (optional)
 - [ ] Team-Verwaltung
 - [ ] Automatische Rapport-Nummerierung pro Projekt
 - [ ] Export nach Excel
-- [ ] Kalender-Integration
+- [x] ~~Kalender-Integration~~ ✅ **Implementiert in v3.3**
+- [x] ~~Statistiken~~ ✅ **Implementiert in v3.3**
+- [x] ~~Projektverwaltung~~ ✅ **Implementiert in v3.3**
+- [x] ~~Spracheingabe-Auswahl verbessern~~ ✅ **Kategorien-Buttons in v3.3.2**
 
 ---
 
@@ -253,7 +292,7 @@ icon-192x192.png                # App Icon (optional)
 https://micki79.github.io/baustellenbericht2/index.html
 ```
 
-(URL nach Upload der neuen Version anpassen)
+✅ **Aktiv und funktionsfähig** (Stand: 02.12.2024)
 
 ---
 
@@ -288,5 +327,8 @@ Hauptanforderung: **Schnelle Dateneingabe auf der Baustelle mit Handschuhen/schm
 
 ---
 
+---
+
 *Dokumentation erstellt: 02.12.2024*
-*Für: Baustellenbericht App v1.16*
+*Zuletzt aktualisiert: 02.12.2024*
+*Für: Baustellenbericht App v3.3.3 Ultra-Mega-DB*
