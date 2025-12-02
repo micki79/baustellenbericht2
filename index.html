@@ -419,7 +419,7 @@
         }
         
         .chip.selected::after {
-            content: ' ✅“';
+            content: ' ✅';
         }
         
         /* LISTE */
@@ -1845,6 +1845,60 @@
             border-radius: 4px;
             margin-left: 10px;
         }
+
+        /* ===== PUSH-TO-TALK BUTTON STYLES ===== */
+        .btn-push-to-talk {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .btn-push-to-talk:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-push-to-talk:active,
+        .btn-push-to-talk.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            transform: scale(0.98);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+            animation: pulse-record 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-record {
+            0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.8); }
+        }
+
+        .btn-push-to-talk .ptt-icon {
+            margin-right: 8px;
+        }
+
+        .btn-push-to-talk .ptt-text-idle {
+            display: inline;
+        }
+
+        .btn-push-to-talk .ptt-text-recording {
+            display: none;
+        }
+
+        .btn-push-to-talk.recording .ptt-text-idle {
+            display: none;
+        }
+
+        .btn-push-to-talk.recording .ptt-text-recording {
+            display: inline;
+        }
     </style>
     <!-- v3.3 Ultra-Mega-DB: Puter.js für kostenlose KI -->
     <script src="https://js.puter.com/v2/"></script>
@@ -2037,7 +2091,16 @@
                 </select>
                 <div id="taetigkeitenChips" class="chips-container"></div>
                 <button type="button" class="btn btn-success" onclick="addSelectedToForm()">➕ Zur Tabelle hinzufügen</button>
-                <button type="button" class="btn btn-secondary" onclick="addTaetigkeitViaVoice()">🎤 Per Sprache hinzufügen</button>
+                <button type="button" class="btn-push-to-talk" id="pttTaetigkeit"
+                    onmousedown="startPushToTalk('taetigkeit', this)"
+                    onmouseup="stopPushToTalk('taetigkeit', this)"
+                    onmouseleave="stopPushToTalk('taetigkeit', this)"
+                    ontouchstart="startPushToTalk('taetigkeit', this); event.preventDefault();"
+                    ontouchend="stopPushToTalk('taetigkeit', this)">
+                    <span class="ptt-icon">🎤</span>
+                    <span class="ptt-text-idle">Gedrückt halten zum Sprechen</span>
+                    <span class="ptt-text-recording">🔴 Aufnahme läuft...</span>
+                </button>
                 
                 
             </div>
@@ -2074,7 +2137,16 @@
                 <label>Zusätzliche Eingabe:</label>
                 <textarea id="materialHelperText" placeholder="Material hier eingeben..."></textarea>
                 <button type="button" class="btn btn-success" onclick="addMaterialToForm()">➕ Übernehmen</button>
-                <button type="button" class="btn btn-secondary" onclick="startVoiceInputHelper('materialHelperText')">🎤 Spracheingabe</button>
+                <button type="button" class="btn-push-to-talk" id="pttMaterial"
+                    onmousedown="startPushToTalk('materialHelperText', this)"
+                    onmouseup="stopPushToTalk('materialHelperText', this)"
+                    onmouseleave="stopPushToTalk('materialHelperText', this)"
+                    ontouchstart="startPushToTalk('materialHelperText', this); event.preventDefault();"
+                    ontouchend="stopPushToTalk('materialHelperText', this)">
+                    <span class="ptt-icon">🎤</span>
+                    <span class="ptt-text-idle">Gedrückt halten</span>
+                    <span class="ptt-text-recording">🔴 Aufnahme...</span>
+                </button>
             </div>
             
             <!-- WERKZEUGE HELPER -->
@@ -2094,7 +2166,16 @@
                 <label>Zusätzliche Eingabe:</label>
                 <textarea id="werkzeugeHelperText" placeholder="Maschinen/Werkzeuge hier eingeben..."></textarea>
                 <button type="button" class="btn btn-success" onclick="addWerkzeugeToForm()">➕ Übernehmen</button>
-                <button type="button" class="btn btn-secondary" onclick="startVoiceInputHelper('werkzeugeHelperText')">🎤 Spracheingabe</button>
+                <button type="button" class="btn-push-to-talk" id="pttWerkzeuge"
+                    onmousedown="startPushToTalk('werkzeugeHelperText', this)"
+                    onmouseup="stopPushToTalk('werkzeugeHelperText', this)"
+                    onmouseleave="stopPushToTalk('werkzeugeHelperText', this)"
+                    ontouchstart="startPushToTalk('werkzeugeHelperText', this); event.preventDefault();"
+                    ontouchend="stopPushToTalk('werkzeugeHelperText', this)">
+                    <span class="ptt-icon">🎤</span>
+                    <span class="ptt-text-idle">Gedrückt halten</span>
+                    <span class="ptt-text-recording">🔴 Aufnahme...</span>
+                </button>
             </div>
             
             <!-- PERSONAL -->
@@ -2684,7 +2765,7 @@
                 'Dichtband',
                 'Abdichtungsbahn',
                 'Wannenrandband',
-                'Echdichtband',
+                'Eckdichtband',
                 'Manschette',
                 'Dichtfolie',
                 'Grundierung',
@@ -2697,7 +2778,7 @@
                 'Dehnfugenprofil',
                 'Fliesenschiene',
                 'Kantenschutz',
-                'Trepenprofil',
+                'Treppenprofil',
                 'Sockelprofil',
                 'LED-Profil',
                 'Quadratprofil'
@@ -2831,7 +2912,6 @@
             const dateStr = today.toLocaleDateString('de-DE');
             document.getElementById('datumDisplay1').textContent = dateStr;
             document.getElementById('datumDisplay2').textContent = dateStr;
-            document.getElementById('datumDisplay2').textContent = dateStr;
             
             // Listen to datum changes
             document.getElementById('datum').addEventListener('change', function() {
@@ -2873,7 +2953,7 @@
                 }
                 const data = await response.json();
                 
-                console.log('✅ IP-Geolocation erfolg reich:', {
+                console.log('✅ IP-Geolocation erfolgreich:', {
                     city: data.city,
                     country: data.country_name,
                     lat: data.latitude,
@@ -4002,7 +4082,7 @@
             }
             
             const backup = {
-                version: '1.11',
+                version: '3.3',
                 exportDate: new Date().toISOString(),
                 count: berichte.length,
                 berichte: berichte
@@ -4894,127 +4974,224 @@
             showToast('PDF erfolgreich heruntergeladen!', 'success');
         }
         
-        // ===== SPRACHEINGABE =====
+        // ===== PUSH-TO-TALK SPRACHEINGABE =====
         let currentRecognition = null;
-        
-        async function addTaetigkeitViaVoice() {
-            // 1. Feature Detection (kein User-Agent Check!)
+        let pttActiveTarget = null;
+        let pttActiveButton = null;
+
+        // Push-to-Talk: Aufnahme starten wenn Button gedrückt wird
+        function startPushToTalk(targetId, buttonElement) {
+            // Verhindere Doppelstart
+            if (currentRecognition) {
+                return;
+            }
+
+            // 1. Feature Detection
             if (!browserCaps.features.speechRecognition) {
                 showToast('⚠️ Spracheingabe nicht verfügbar in diesem Browser', 'error');
                 return;
             }
-            
+
             if (!browserCaps.features.isSecureContext) {
-                showToast('⚠️ HTTPS erforderlich für Spracheingabe. Bitte über HTTPS oder localhost öffnen.', 'error');
+                showToast('⚠️ HTTPS erforderlich für Spracheingabe', 'error');
                 return;
             }
-            
-            // 2. Pre-Permission-Dialog zeigen (OHNE navigator.permissions.query!)
-            const userConsent = await showMicrophonePermissionPriming();
-            if (!userConsent) {
-                showToast('ℹ️ Spracheingabe abgebrochen', 'info');
-                return;
-            }
-            
-            // 3. Jetzt Speech Recognition starten - Permission-Prompt kommt automatisch
-            if (currentRecognition) {
-                currentRecognition.stop();
-            }
-            
+
+            // Speichere aktive Elemente
+            pttActiveTarget = targetId;
+            pttActiveButton = buttonElement;
+
+            // Button visuell als "recording" markieren
+            buttonElement.classList.add('recording');
+
+            // Speech Recognition erstellen
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             currentRecognition = recognition;
-            
+
             recognition.lang = 'de-DE';
-            recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.continuous = true; // Kontinuierlich aufnehmen solange gedrückt
+            recognition.interimResults = true; // Zeige Zwischenergebnisse
             recognition.maxAlternatives = 1;
-            
+
+            let finalTranscript = '';
+            let interimTranscript = '';
+
             recognition.onstart = function() {
-                showToast('🎤 Bitte jetzt sprechen...', 'success');
+                showToast('🎤 Aufnahme läuft - Loslassen zum Beenden', 'success');
+
+                // Falls targetId ein Textarea ist, border ändern
+                if (targetId !== 'taetigkeit') {
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.style.border = '3px solid #ef4444';
+                        targetElement.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.5)';
+                    }
+                }
             };
-            
+
             recognition.onresult = function(event) {
-                const transcript = event.results[0][0].transcript;
-                
-                // v3.3 Ultra-Mega-DB: Zeige Textverbesserungs-Modal mit 5 Vorschlägen
-                showTextVerbesserungModal(transcript, 'taetigkeit');
+                interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                // Live-Vorschau im Textarea (falls vorhanden)
+                if (targetId !== 'taetigkeit') {
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const existingText = targetElement.dataset.originalText || '';
+                        targetElement.value = existingText + (existingText ? '\n' : '') + finalTranscript + interimTranscript;
+                    }
+                }
             };
-            
+
             recognition.onerror = function(event) {
+                // 'aborted' ist normal wenn wir manuell stoppen
+                if (event.error === 'aborted') return;
+
                 let errorMsg = 'Spracheingabe-Fehler';
-                
+
                 switch(event.error) {
                     case 'no-speech':
-                        errorMsg = 'Keine Sprache erkannt. Bitte erneut versuchen.';
+                        errorMsg = 'Keine Sprache erkannt';
                         break;
                     case 'audio-capture':
                         errorMsg = 'Kein Mikrofon gefunden';
                         break;
                     case 'not-allowed':
-                        errorMsg = 'Mikrofon-Zugriff verweigert. Bitte in Browser-Einstellungen aktivieren.';
+                        errorMsg = 'Mikrofon-Zugriff verweigert. Bitte Browser-Einstellungen prüfen.';
                         break;
                 }
-                
+
                 showToast(errorMsg, 'error');
-                currentRecognition = null;
+                cleanupPTT();
             };
-            
+
             recognition.onend = function() {
-                currentRecognition = null;
+                // Verarbeite finales Ergebnis
+                if (finalTranscript.trim()) {
+                    if (targetId === 'taetigkeit') {
+                        // Für Tätigkeiten: Zeige Verbesserungs-Modal
+                        showTextVerbesserungModal(finalTranscript.trim(), 'taetigkeit');
+                    } else {
+                        // Für andere Felder: Text direkt einfügen
+                        const targetElement = document.getElementById(targetId);
+                        if (targetElement) {
+                            const originalText = targetElement.dataset.originalText || '';
+                            if (originalText) {
+                                targetElement.value = originalText + '\n' + finalTranscript.trim();
+                            } else {
+                                targetElement.value = finalTranscript.trim();
+                            }
+                            showToast('✅ Text übernommen', 'success');
+                        }
+                    }
+                }
+
+                cleanupPTT();
             };
-            
+
+            // Speichere originalen Text für Textarea
+            if (targetId !== 'taetigkeit') {
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.dataset.originalText = targetElement.value;
+                }
+            }
+
             try {
                 recognition.start();
             } catch (e) {
                 showToast('Fehler beim Starten der Spracheingabe', 'error');
-                currentRecognition = null;
+                cleanupPTT();
             }
         }
-        
+
+        // Push-to-Talk: Aufnahme stoppen wenn Button losgelassen wird
+        function stopPushToTalk(targetId, buttonElement) {
+            if (currentRecognition && pttActiveTarget === targetId) {
+                try {
+                    currentRecognition.stop();
+                } catch (e) {
+                    // Ignoriere Fehler beim Stoppen
+                }
+            }
+        }
+
+        // Aufräumen nach PTT
+        function cleanupPTT() {
+            if (pttActiveButton) {
+                pttActiveButton.classList.remove('recording');
+            }
+
+            if (pttActiveTarget && pttActiveTarget !== 'taetigkeit') {
+                const targetElement = document.getElementById(pttActiveTarget);
+                if (targetElement) {
+                    targetElement.style.border = '';
+                    targetElement.style.boxShadow = '';
+                    delete targetElement.dataset.originalText;
+                }
+            }
+
+            currentRecognition = null;
+            pttActiveTarget = null;
+            pttActiveButton = null;
+        }
+
+        // Legacy-Funktionen für Abwärtskompatibilität (falls irgendwo noch verwendet)
+        async function addTaetigkeitViaVoice() {
+            showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
+        }
+
         async function startVoiceInput(targetId) {
-            // 1. Feature Detection (kein User-Agent Check!)
+            showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
+        }
+
+        function startVoiceInputHelper(targetId) {
+            showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
+        }
+
+        // Alte startVoiceInput Funktion (wird nicht mehr verwendet, aber für Kompatibilität behalten)
+        async function startVoiceInputOld(targetId) {
             if (!browserCaps.features.speechRecognition) {
                 showToast('⚠️ Spracheingabe nicht verfügbar in diesem Browser', 'error');
                 return;
             }
-            
+
             if (!browserCaps.features.isSecureContext) {
                 showToast('⚠️ HTTPS erforderlich für Spracheingabe. Bitte über HTTPS oder localhost öffnen.', 'error');
                 return;
             }
-            
-            // 2. Pre-Permission-Dialog zeigen (OHNE navigator.permissions.query!)
-            const userConsent = await showMicrophonePermissionPriming();
-            if (!userConsent) {
-                showToast('ℹ️ Spracheingabe abgebrochen', 'info');
-                return;
-            }
-            
-            // 3. Jetzt Speech Recognition starten - Permission-Prompt kommt automatisch
+
             if (currentRecognition) {
                 currentRecognition.stop();
             }
-            
+
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             currentRecognition = recognition;
-            
+
             recognition.lang = 'de-DE';
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
-            
+
             const targetElement = document.getElementById(targetId);
-            
+
             recognition.onstart = function() {
                 showToast('🎤 Sprechen Sie jetzt...', 'success');
                 targetElement.style.border = '2px solid #10b981';
             };
-            
+
             recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
-                
+
                 // Append to existing text with a newline if there's already content
                 if (targetElement.value.trim()) {
                     targetElement.value += '\n' + transcript;
