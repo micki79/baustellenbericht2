@@ -3037,11 +3037,14 @@
             return 'Wechselhaft';
         }
 
-        async function loadWetter() {
+        // Globale Variable für Stadt (wird von autoLoadLocation gesetzt)
+        let aktuelleStadt = null;
+
+        async function loadWetter(stadtParam) {
             try {
                 let lat = document.getElementById('gpsLat')?.value;
                 let lon = document.getElementById('gpsLon')?.value;
-                let city = null;
+                let city = stadtParam || aktuelleStadt || null;
 
                 // Wenn kein GPS, versuche IP-basiert
                 if (!lat || !lon) {
@@ -3050,6 +3053,7 @@
                         lat = ipLoc.lat;
                         lon = ipLoc.lon;
                         city = ipLoc.city;
+                        aktuelleStadt = city;
                     } else {
                         updateWetterUI('Unbekannt', '--', 'Standort nicht verfügbar');
                         return;
@@ -3100,13 +3104,14 @@
                         statusEl.textContent = `📍 ${ipLoc.city || 'Standort'} (IP-basiert, ±20km)`;
                         statusEl.className = 'gps-status gps-success';
                     }
-                    // Stadt in Adressfeld eintragen
+                    // Stadt speichern und in Adressfeld eintragen
+                    aktuelleStadt = ipLoc.city;
                     const ortInput = document.getElementById('ortHelper');
                     if (ortInput && ipLoc.city) {
                         ortInput.value = ipLoc.city;
                     }
                     updateGPSSourceBadge('ip', 20000);
-                    loadWetter();
+                    loadWetter(ipLoc.city);
                     return;
                 }
             } catch (e) {
@@ -3387,6 +3392,15 @@
                     const ortInput = document.getElementById('ortHelper');
                     if (ortInput && ort) {
                         ortInput.value = ort;
+                    }
+
+                    // Stadt global speichern und Wetter-Anzeige aktualisieren
+                    if (ort) {
+                        aktuelleStadt = ort;
+                        const wetterOrt = document.getElementById('wetterOrt');
+                        if (wetterOrt) {
+                            wetterOrt.textContent = '📍 ' + ort;
+                        }
                     }
 
                     console.log('📍 Reverse Geocoding:', ort, strasse);
