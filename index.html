@@ -1971,6 +1971,71 @@
         <button class="tab" onclick="switchToTab('projekte')">📁 Projekte</button>
         <button class="tab" onclick="switchToTab('statistiken')">📊 Stats</button>
         <button class="tab" onclick="switchToTab('kalender')">📅 Kalender</button>
+        <button class="tab" onclick="openKISettings()" style="margin-left: auto; background: linear-gradient(135deg, #667eea, #764ba2);">⚙️ KI</button>
+    </div>
+
+    <!-- KI EINSTELLUNGEN MODAL -->
+    <div id="kiSettingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10003; align-items:center; justify-content:center; padding:15px;">
+        <div style="background:white; border-radius:16px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto;">
+            <div style="padding:16px 20px; background:linear-gradient(135deg, #667eea, #764ba2); border-radius:16px 16px 0 0;">
+                <h3 style="margin:0; color:white; font-size:18px;">🤖 KI-Einstellungen</h3>
+                <p style="margin:5px 0 0; color:rgba(255,255,255,0.8); font-size:12px;">Kostenlose API-Keys für intelligente Textverbesserung</p>
+            </div>
+            <div style="padding:20px;">
+                <!-- Groq -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:8px; color:#1e40af;">
+                        🚀 Groq API Key <span style="font-weight:normal; color:#64748b;">(schnell)</span>
+                    </label>
+                    <input type="password" id="groqApiKey" placeholder="gsk_..."
+                           style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace;"
+                           onchange="saveKISettings()">
+                    <a href="https://console.groq.com/keys" target="_blank"
+                       style="font-size:12px; color:#667eea; text-decoration:none;">
+                       → Kostenlosen Key holen
+                    </a>
+                </div>
+
+                <!-- Gemini -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-weight:bold; margin-bottom:8px; color:#059669;">
+                        ✨ Google Gemini API Key <span style="font-weight:normal; color:#64748b;">(Backup)</span>
+                    </label>
+                    <input type="password" id="geminiApiKey" placeholder="AIza..."
+                           style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace;"
+                           onchange="saveKISettings()">
+                    <a href="https://aistudio.google.com/apikey" target="_blank"
+                       style="font-size:12px; color:#667eea; text-decoration:none;">
+                       → Kostenlosen Key holen
+                    </a>
+                </div>
+
+                <!-- Status -->
+                <div id="kiStatus" style="padding:12px; background:#f1f5f9; border-radius:8px; margin-bottom:15px;">
+                    <div style="font-size:13px; color:#64748b;">Status wird geladen...</div>
+                </div>
+
+                <!-- Info -->
+                <div style="background:#fef3c7; padding:12px; border-radius:8px; border-left:4px solid #f59e0b;">
+                    <div style="font-size:12px; color:#92400e;">
+                        <strong>💡 So funktioniert's:</strong><br>
+                        1. Hole dir kostenlose API-Keys (Links oben)<br>
+                        2. Füge sie hier ein<br>
+                        3. Bei Spracheingabe erstellt KI professionelle Zusammenfassungen
+                    </div>
+                </div>
+            </div>
+            <div style="padding:12px 20px 20px; display:flex; gap:10px;">
+                <button onclick="closeKISettings()"
+                        style="flex:1; padding:12px; background:#e5e7eb; color:#475569; border:none; border-radius:8px; cursor:pointer;">
+                    Schließen
+                </button>
+                <button onclick="testKIConnection()"
+                        style="flex:1; padding:12px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+                    🔌 Verbindung testen
+                </button>
+            </div>
+        </div>
     </div>
     
     <!-- TAB: NEUER BERICHT -->
@@ -2999,6 +3064,227 @@
             if (tabName === 'liste') {
                 loadBerichte();
             }
+        }
+
+        // ===== KI EINSTELLUNGEN & API FUNKTIONEN =====
+
+        // KI Settings Modal öffnen/schließen
+        function openKISettings() {
+            const modal = document.getElementById('kiSettingsModal');
+            modal.style.display = 'flex';
+            loadKISettings();
+            updateKIStatus();
+        }
+
+        function closeKISettings() {
+            document.getElementById('kiSettingsModal').style.display = 'none';
+        }
+
+        // API Keys speichern/laden
+        function saveKISettings() {
+            const groqKey = document.getElementById('groqApiKey').value.trim();
+            const geminiKey = document.getElementById('geminiApiKey').value.trim();
+
+            if (groqKey) localStorage.setItem('groqApiKey', groqKey);
+            else localStorage.removeItem('groqApiKey');
+
+            if (geminiKey) localStorage.setItem('geminiApiKey', geminiKey);
+            else localStorage.removeItem('geminiApiKey');
+
+            updateKIStatus();
+            showToast('✅ KI-Einstellungen gespeichert', 'success');
+        }
+
+        function loadKISettings() {
+            const groqKey = localStorage.getItem('groqApiKey') || '';
+            const geminiKey = localStorage.getItem('geminiApiKey') || '';
+
+            document.getElementById('groqApiKey').value = groqKey;
+            document.getElementById('geminiApiKey').value = geminiKey;
+        }
+
+        function updateKIStatus() {
+            const groqKey = localStorage.getItem('groqApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+            const statusEl = document.getElementById('kiStatus');
+
+            let html = '<div style="font-size:13px;">';
+
+            if (groqKey) {
+                html += '<div style="color:#22c55e; margin-bottom:5px;">✅ Groq: Konfiguriert</div>';
+            } else {
+                html += '<div style="color:#ef4444; margin-bottom:5px;">❌ Groq: Nicht konfiguriert</div>';
+            }
+
+            if (geminiKey) {
+                html += '<div style="color:#22c55e;">✅ Gemini: Konfiguriert</div>';
+            } else {
+                html += '<div style="color:#ef4444;">❌ Gemini: Nicht konfiguriert</div>';
+            }
+
+            if (!groqKey && !geminiKey) {
+                html += '<div style="color:#f59e0b; margin-top:8px; font-size:12px;">⚠️ Mindestens ein API-Key wird für KI-Funktionen benötigt</div>';
+            }
+
+            html += '</div>';
+            statusEl.innerHTML = html;
+        }
+
+        // Verbindungstest
+        async function testKIConnection() {
+            const groqKey = localStorage.getItem('groqApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+
+            if (!groqKey && !geminiKey) {
+                showToast('⚠️ Bitte erst einen API-Key eingeben', 'error');
+                return;
+            }
+
+            showToast('🔄 Teste Verbindung...', 'info');
+
+            // Teste Groq
+            if (groqKey) {
+                try {
+                    const result = await callGroqAPI('Antworte nur mit: OK', groqKey);
+                    if (result) {
+                        showToast('✅ Groq funktioniert!', 'success');
+                        return;
+                    }
+                } catch (e) {
+                    console.log('Groq Test fehlgeschlagen:', e);
+                }
+            }
+
+            // Teste Gemini
+            if (geminiKey) {
+                try {
+                    const result = await callGeminiAPI('Antworte nur mit: OK', geminiKey);
+                    if (result) {
+                        showToast('✅ Gemini funktioniert!', 'success');
+                        return;
+                    }
+                } catch (e) {
+                    console.log('Gemini Test fehlgeschlagen:', e);
+                }
+            }
+
+            showToast('❌ Verbindung fehlgeschlagen. Bitte API-Keys prüfen.', 'error');
+        }
+
+        // ===== GROQ API =====
+        async function callGroqAPI(prompt, apiKey) {
+            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.1-70b-versatile',
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `Du bist ein Assistent für Fliesenleger-Baustellenberichte.
+Deine Aufgabe ist es, gesprochene Texte in professionelle, kurze Tätigkeitsbeschreibungen umzuwandeln.
+Regeln:
+- Maximal 1-2 Sätze
+- Fachbegriffe korrekt verwenden (Feinsteinzeug, Dünnbettmörtel, Flexkleber, etc.)
+- Mengenangaben beibehalten (m², Stück, lfm)
+- Professioneller Baustellenbericht-Stil
+- Nur die verbesserte Beschreibung ausgeben, keine Erklärungen`
+                        },
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ],
+                    max_tokens: 200,
+                    temperature: 0.3
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Groq API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.choices[0]?.message?.content?.trim() || null;
+        }
+
+        // ===== GEMINI API =====
+        async function callGeminiAPI(prompt, apiKey) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [{
+                            text: `Du bist ein Assistent für Fliesenleger-Baustellenberichte.
+Wandle folgenden gesprochenen Text in eine professionelle, kurze Tätigkeitsbeschreibung um.
+Regeln:
+- Maximal 1-2 Sätze
+- Fachbegriffe korrekt verwenden
+- Mengenangaben beibehalten
+- Nur die verbesserte Beschreibung ausgeben
+
+Text: ${prompt}`
+                        }]
+                    }],
+                    generationConfig: {
+                        maxOutputTokens: 200,
+                        temperature: 0.3
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Gemini API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+        }
+
+        // ===== HAUPT-KI-FUNKTION (mit Fallback) =====
+        async function verbessereMitKI(text) {
+            const groqKey = localStorage.getItem('groqApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+
+            // Versuche Groq zuerst
+            if (groqKey) {
+                try {
+                    const result = await callGroqAPI(text, groqKey);
+                    if (result) {
+                        console.log('✅ KI-Verbesserung via Groq');
+                        return { text: result, source: 'Groq' };
+                    }
+                } catch (e) {
+                    console.log('Groq fehlgeschlagen, versuche Gemini...', e);
+                }
+            }
+
+            // Fallback zu Gemini
+            if (geminiKey) {
+                try {
+                    const result = await callGeminiAPI(text, geminiKey);
+                    if (result) {
+                        console.log('✅ KI-Verbesserung via Gemini');
+                        return { text: result, source: 'Gemini' };
+                    }
+                } catch (e) {
+                    console.log('Gemini fehlgeschlagen', e);
+                }
+            }
+
+            // Keine KI verfügbar
+            return null;
+        }
+
+        // Prüfen ob KI verfügbar ist
+        function isKIAvailable() {
+            return localStorage.getItem('groqApiKey') || localStorage.getItem('geminiApiKey');
         }
 
         // ===== WETTER FUNKTIONEN (aus Script 2 hierher verschoben) =====
@@ -8322,15 +8608,16 @@ brew install mkcert</div>
             const korrigiert = autokorrigiereText(originalText);
             const { stunden, taetigkeit } = extrahiereStunden(korrigiert);
             const lokaleVorschlaege = generiereLokalVorschlaege(taetigkeit);
-            
+            const kiVerfuegbar = isKIAvailable();
+
             // Modal erstellen
             const altesModal = document.getElementById('textVerbesserungModal');
             if (altesModal) altesModal.remove();
-            
+
             const modal = document.createElement('div');
             modal.id = 'textVerbesserungModal';
             modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10002;display:flex;align-items:center;justify-content:center;padding:15px;';
-            
+
             const stundenHtml = stunden ? `
                 <div style="background:#fef3c7;padding:12px;border-radius:8px;margin-bottom:15px;border:2px solid #f59e0b;">
                     <div style="font-size:12px;color:#92400e;margin-bottom:5px;">⏱️ Erkannte Stunden:</div>
@@ -8340,7 +8627,38 @@ brew install mkcert</div>
                         <span style="color:#92400e;font-weight:bold;">Stunden</span>
                     </div>
                 </div>` : '';
-            
+
+            // KI-Bereich HTML
+            const kiHtml = `
+                <div style="margin-bottom:15px;padding:12px;background:linear-gradient(135deg,#667eea20,#764ba220);border-radius:8px;border:2px solid #667eea;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div style="font-size:13px;color:#667eea;font-weight:bold;">🤖 KI-Zusammenfassung</div>
+                        ${kiVerfuegbar ?
+                            `<button id="kiButton" onclick="starteKIVerbesserung('${originalText.replace(/'/g, "\\'")}', '${typ}')"
+                                style="padding:6px 12px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;">
+                                ✨ KI verbessern
+                            </button>` :
+                            `<button onclick="openKISettings()"
+                                style="padding:6px 12px;background:#e5e7eb;color:#64748b;border:none;border-radius:6px;cursor:pointer;font-size:12px;">
+                                ⚙️ API-Key einrichten
+                            </button>`
+                        }
+                    </div>
+                    <div id="kiVorschlag" style="display:none;background:white;padding:12px;border-radius:8px;cursor:pointer;border:2px solid #22c55e;"
+                         onclick="waehleKIVorschlag('${typ}')">
+                        <div style="font-size:11px;color:#166534;margin-bottom:5px;">✨ KI-Vorschlag:</div>
+                        <div id="kiVorschlagText" style="color:#166534;font-weight:bold;"></div>
+                        <div id="kiVorschlagSource" style="font-size:10px;color:#64748b;margin-top:5px;"></div>
+                    </div>
+                    <div id="kiLaden" style="display:none;text-align:center;padding:15px;color:#667eea;">
+                        <div style="font-size:24px;margin-bottom:5px;">⏳</div>
+                        <div>KI analysiert Text...</div>
+                    </div>
+                    <div id="kiInfo" style="font-size:11px;color:#64748b;${kiVerfuegbar ? '' : 'display:none;'}">
+                        Klicke auf "KI verbessern" für professionelle Zusammenfassung
+                    </div>
+                </div>`;
+
             modal.innerHTML = `
                 <div style="background:white;border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;">
                     <div style="padding:16px 20px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:16px 16px 0 0;">
@@ -8352,9 +8670,10 @@ brew install mkcert</div>
                             <div style="color:#475569;">"${originalText}"</div>
                         </div>
                         ${stundenHtml}
-                        <div style="background:#dcfce7;padding:12px;border-radius:8px;margin-bottom:15px;cursor:pointer;border:2px solid #22c55e;" 
+                        ${kiHtml}
+                        <div style="background:#dcfce7;padding:12px;border-radius:8px;margin-bottom:15px;cursor:pointer;border:2px solid #22c55e;"
                              onclick="waehleTextvorschlag('${taetigkeit.replace(/'/g, "\\'")}', '${typ}')">
-                            <div style="font-size:11px;color:#166534;">✅ Korrigiert:</div>
+                            <div style="font-size:11px;color:#166534;">✅ Lokal korrigiert:</div>
                             <div style="color:#166534;font-weight:bold;">"${taetigkeit}"</div>
                         </div>
                         <div style="font-size:13px;color:#64748b;margin-bottom:8px;font-weight:500;">📚 Professionelle Formulierungen:</div>
@@ -8385,16 +8704,65 @@ brew install mkcert</div>
                         </div>
                     </div>
                     <div style="padding:12px 20px 20px;display:flex;gap:10px;">
-                        <button onclick="document.getElementById('textVerbesserungModal').remove()" 
+                        <button onclick="document.getElementById('textVerbesserungModal').remove()"
                                 style="flex:1;padding:12px;background:#e5e7eb;color:#475569;border:none;border-radius:8px;cursor:pointer;">❌ Abbrechen</button>
-                        <button onclick="waehleTextvorschlag('${taetigkeit.replace(/'/g, "\\'")}', '${typ}')" 
+                        <button onclick="waehleTextvorschlag('${taetigkeit.replace(/'/g, "\\'")}', '${typ}')"
                                 style="flex:1;padding:12px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">✅ Übernehmen</button>
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(modal);
-            // KI-Vorschläge deaktiviert - nur lokale Vorschläge
+
+            // Automatisch KI starten wenn verfügbar
+            if (kiVerfuegbar) {
+                starteKIVerbesserung(originalText, typ);
+            }
+        }
+
+        // KI-Verbesserung starten
+        let aktuellerKIVorschlag = '';
+        async function starteKIVerbesserung(text, typ) {
+            const kiButton = document.getElementById('kiButton');
+            const kiLaden = document.getElementById('kiLaden');
+            const kiVorschlag = document.getElementById('kiVorschlag');
+            const kiInfo = document.getElementById('kiInfo');
+
+            // Button deaktivieren, Ladeanimation zeigen
+            if (kiButton) kiButton.style.display = 'none';
+            if (kiInfo) kiInfo.style.display = 'none';
+            if (kiLaden) kiLaden.style.display = 'block';
+
+            try {
+                const result = await verbessereMitKI(text);
+
+                if (result && result.text) {
+                    aktuellerKIVorschlag = result.text;
+                    document.getElementById('kiVorschlagText').textContent = result.text;
+                    document.getElementById('kiVorschlagSource').textContent = `via ${result.source}`;
+                    if (kiLaden) kiLaden.style.display = 'none';
+                    if (kiVorschlag) kiVorschlag.style.display = 'block';
+                    showToast(`✨ KI-Vorschlag via ${result.source}`, 'success');
+                } else {
+                    throw new Error('Keine Antwort');
+                }
+            } catch (e) {
+                console.error('KI-Verbesserung fehlgeschlagen:', e);
+                if (kiLaden) kiLaden.style.display = 'none';
+                if (kiButton) kiButton.style.display = 'inline-block';
+                if (kiInfo) {
+                    kiInfo.textContent = '⚠️ KI nicht verfügbar - versuche es erneut';
+                    kiInfo.style.display = 'block';
+                }
+                showToast('⚠️ KI-Verbesserung fehlgeschlagen', 'error');
+            }
+        }
+
+        // KI-Vorschlag übernehmen
+        function waehleKIVorschlag(typ) {
+            if (aktuellerKIVorschlag) {
+                waehleTextvorschlag(aktuellerKIVorschlag, typ);
+            }
         }
         
         // ===== SCROLL ZU HELPER =====
