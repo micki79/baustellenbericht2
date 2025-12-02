@@ -122,7 +122,7 @@ Wenn die App über `file://` oder `content://` geöffnet wird (z.B. aus Datei-Ma
 - ✅ Chip-basierte Mehrfachauswahl
 - ✅ Mengen und Einheiten
 
-### Spracheingabe (v3.3 - Push-to-Talk)
+### Spracheingabe (v3.3.2 - Push-to-Talk)
 - ✅ Web Speech API Integration
 - ✅ **Push-to-Talk System** (Button gedrückt halten zum Sprechen)
 - ✅ Live-Vorschau während des Sprechens
@@ -131,7 +131,8 @@ Wenn die App über `file://` oder `content://` geöffnet wird (z.B. aus Datei-Ma
 - ✅ Material/Maschinen per Sprache eingeben
 - ✅ Audio-Aufnahme mit MediaRecorder
 - ✅ Touch-Support (ontouchstart/ontouchend)
-- ⚠️ **TODO:** Auswahl-Modal nach Spracheingabe prüfen
+- ✅ Auswahl-Modal mit lokalen Vorschlägen
+- ❌ KI-Vorschläge deaktiviert (Puter.js öffnete externe Login-Seite)
 
 ### Personal & Fahrzeuge
 - ✅ Personal-Verwaltung (Anzahl, Typ, Stunden)
