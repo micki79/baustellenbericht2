@@ -5074,24 +5074,30 @@
             };
 
             recognition.onend = function() {
-                // Verarbeite finales Ergebnis
-                if (finalTranscript.trim()) {
+                // Kombiniere final + interim (falls vorhanden)
+                const gesamtText = (finalTranscript + interimTranscript).trim();
+
+                // Verarbeite Ergebnis
+                if (gesamtText) {
                     if (targetId === 'taetigkeit') {
                         // Für Tätigkeiten: Zeige Verbesserungs-Modal
-                        showTextVerbesserungModal(finalTranscript.trim(), 'taetigkeit');
+                        console.log('🎤 Spracheingabe erkannt:', gesamtText);
+                        showTextVerbesserungModal(gesamtText, 'taetigkeit');
                     } else {
                         // Für andere Felder: Text direkt einfügen
                         const targetElement = document.getElementById(targetId);
                         if (targetElement) {
                             const originalText = targetElement.dataset.originalText || '';
                             if (originalText) {
-                                targetElement.value = originalText + '\n' + finalTranscript.trim();
+                                targetElement.value = originalText + '\n' + gesamtText;
                             } else {
-                                targetElement.value = finalTranscript.trim();
+                                targetElement.value = gesamtText;
                             }
                             showToast('✅ Text übernommen', 'success');
                         }
                     }
+                } else {
+                    showToast('⚠️ Keine Sprache erkannt. Bitte erneut versuchen.', 'info');
                 }
 
                 cleanupPTT();
