@@ -5521,10 +5521,12 @@ Text: ${prompt}`
             showToast('PDF erfolgreich heruntergeladen!', 'success');
         }
         
-        // ===== PUSH-TO-TALK SPRACHEINGABE =====
+        // ===== PUSH-TO-TALK SPRACHEINGABE (verbessert für lange Texte) =====
         let currentRecognition = null;
         let pttActiveTarget = null;
         let pttActiveButton = null;
+        let pttIsHolding = false;  // Wird Button noch gehalten?
+        let pttFullTranscript = ''; // Gesamter Text über mehrere Sessions
 
         // Push-to-Talk: Aufnahme starten wenn Button gedrückt wird
         function startPushToTalk(targetId, buttonElement) {
@@ -5534,12 +5536,12 @@ Text: ${prompt}`
             }
 
             // 1. Feature Detection
-            if (!browserCaps.features.speechRecognition) {
+            if (!window.browserCaps || !window.browserCaps.features.speechRecognition) {
                 showToast('⚠️ Spracheingabe nicht verfügbar in diesem Browser', 'error');
                 return;
             }
 
-            if (!browserCaps.features.isSecureContext) {
+            if (!window.browserCaps.features.isSecureContext) {
                 showToast('⚠️ HTTPS erforderlich für Spracheingabe', 'error');
                 return;
             }
@@ -5547,25 +5549,34 @@ Text: ${prompt}`
             // Speichere aktive Elemente
             pttActiveTarget = targetId;
             pttActiveButton = buttonElement;
+            pttIsHolding = true;
+            pttFullTranscript = ''; // Reset für neue Aufnahme
 
             // Button visuell als "recording" markieren
             buttonElement.classList.add('recording');
 
-            // Speech Recognition erstellen
+            // Starte erste Recognition-Session
+            startRecognitionSession(targetId);
+        }
+
+        // Separate Funktion für Recognition-Session (ermöglicht Auto-Neustart)
+        function startRecognitionSession(targetId) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             currentRecognition = recognition;
 
             recognition.lang = 'de-DE';
-            recognition.continuous = true; // Kontinuierlich aufnehmen solange gedrückt
-            recognition.interimResults = true; // Zeige Zwischenergebnisse
+            recognition.continuous = true;
+            recognition.interimResults = true;
             recognition.maxAlternatives = 1;
 
-            let finalTranscript = '';
+            let sessionTranscript = '';
             let interimTranscript = '';
 
             recognition.onstart = function() {
-                showToast('🎤 Aufnahme läuft - Loslassen zum Beenden', 'success');
+                if (pttFullTranscript === '') {
+                    showToast('🎤 Aufnahme läuft - Loslassen zum Beenden', 'success');
+                }
 
                 // Falls targetId ein Textarea ist, border ändern
                 if (targetId !== 'taetigkeit') {
@@ -5582,7 +5593,7 @@ Text: ${prompt}`
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + ' ';
+                        sessionTranscript += event.results[i][0].transcript + ' ';
                     } else {
                         interimTranscript += event.results[i][0].transcript;
                     }
@@ -5593,21 +5604,32 @@ Text: ${prompt}`
                     const targetElement = document.getElementById(targetId);
                     if (targetElement) {
                         const existingText = targetElement.dataset.originalText || '';
-                        targetElement.value = existingText + (existingText ? '\n' : '') + finalTranscript + interimTranscript;
+                        targetElement.value = existingText + (existingText ? '\n' : '') +
+                            pttFullTranscript + sessionTranscript + interimTranscript;
                     }
                 }
             };
 
             recognition.onerror = function(event) {
-                // 'aborted' ist normal wenn wir manuell stoppen
-                if (event.error === 'aborted') return;
+                // 'aborted' und 'no-speech' sind normal bei langen Pausen
+                if (event.error === 'aborted' || event.error === 'no-speech') {
+                    // Bei no-speech: Wenn Button noch gehalten, neu starten
+                    if (pttIsHolding && event.error === 'no-speech') {
+                        console.log('🔄 Keine Sprache erkannt, starte neu...');
+                        pttFullTranscript += sessionTranscript;
+                        currentRecognition = null;
+                        setTimeout(() => {
+                            if (pttIsHolding) {
+                                startRecognitionSession(targetId);
+                            }
+                        }, 100);
+                    }
+                    return;
+                }
 
                 let errorMsg = 'Spracheingabe-Fehler';
 
                 switch(event.error) {
-                    case 'no-speech':
-                        errorMsg = 'Keine Sprache erkannt';
-                        break;
                     case 'audio-capture':
                         errorMsg = 'Kein Mikrofon gefunden';
                         break;
@@ -5621,17 +5643,33 @@ Text: ${prompt}`
             };
 
             recognition.onend = function() {
-                // Kombiniere final + interim (falls vorhanden)
-                const gesamtText = (finalTranscript + interimTranscript).trim();
+                // Sammle Text dieser Session
+                const sessionText = (sessionTranscript + interimTranscript).trim();
 
-                // Verarbeite Ergebnis
+                // Wenn Button noch gehalten wird → Auto-Neustart
+                if (pttIsHolding) {
+                    console.log('🔄 Recognition beendet, starte automatisch neu...');
+                    pttFullTranscript += sessionText + ' ';
+                    currentRecognition = null;
+
+                    // Kurze Pause, dann neu starten
+                    setTimeout(() => {
+                        if (pttIsHolding) {
+                            showToast('🎤 Weiter sprechen...', 'info');
+                            startRecognitionSession(targetId);
+                        }
+                    }, 100);
+                    return;
+                }
+
+                // Button wurde losgelassen → Verarbeite Gesamtergebnis
+                const gesamtText = (pttFullTranscript + sessionText).trim();
+
                 if (gesamtText) {
                     if (targetId === 'taetigkeit') {
-                        // Für Tätigkeiten: Zeige Verbesserungs-Modal
                         console.log('🎤 Spracheingabe erkannt:', gesamtText);
                         showTextVerbesserungModal(gesamtText, 'taetigkeit');
                     } else {
-                        // Für andere Felder: Text direkt einfügen
                         const targetElement = document.getElementById(targetId);
                         if (targetElement) {
                             const originalText = targetElement.dataset.originalText || '';
@@ -5668,6 +5706,9 @@ Text: ${prompt}`
 
         // Push-to-Talk: Aufnahme stoppen wenn Button losgelassen wird
         function stopPushToTalk(targetId, buttonElement) {
+            // Markiere dass Button losgelassen wurde (verhindert Auto-Neustart)
+            pttIsHolding = false;
+
             if (currentRecognition && pttActiveTarget === targetId) {
                 try {
                     currentRecognition.stop();
@@ -5695,6 +5736,8 @@ Text: ${prompt}`
             currentRecognition = null;
             pttActiveTarget = null;
             pttActiveButton = null;
+            pttIsHolding = false;
+            pttFullTranscript = '';
         }
 
         // Legacy-Funktionen für Abwärtskompatibilität (falls irgendwo noch verwendet)
