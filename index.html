@@ -2272,6 +2272,25 @@
                 </div>
             </div>
             
+            <!-- TÄTIGKEITEN SECTION -->
+            <div class="rapport-section">
+                <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>🔨 Tätigkeiten:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('taetigkeit')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttTaetigkeitUnten"
+                            onmousedown="startPushToTalk('taetigkeit', this)"
+                            onmouseup="stopPushToTalk('taetigkeit', this)"
+                            onmouseleave="stopPushToTalk('taetigkeit', this)"
+                            ontouchstart="startPushToTalk('taetigkeit', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('taetigkeit', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- HAUPTTABELLE -->
             <table class="rapport-table">
                 <thead>
@@ -2291,30 +2310,52 @@
             <!-- MATERIAL SECTION -->
             <div class="rapport-section">
                 <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Material:</span>
-                    <button type="button" class="btn btn-secondary" onclick="startVoiceInput('materialText')" style="padding: 5px 10px; font-size: 12px;">🎤 Spracheingabe</button>
+                    <span>📦 Material:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('material')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttMaterialUnten"
+                            onmousedown="startPushToTalk('materialText', this)"
+                            onmouseup="stopPushToTalk('materialText', this)"
+                            onmouseleave="stopPushToTalk('materialText', this)"
+                            ontouchstart="startPushToTalk('materialText', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('materialText', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
                 </div>
                 <textarea id="materialText" placeholder="Material hier eingeben oder oben auswählen..."></textarea>
             </div>
             
             <!-- PERSONAL SECTION -->
             <div class="rapport-section">
-                <div class="rapport-section-title">Personal:</div>
+                <div class="rapport-section-title">👷 Personal:</div>
                 <div id="personalFormText" style="background: white; padding: 8px; min-height: 60px; font-size: 11px; border: none;"></div>
             </div>
             
             <!-- MASCHINEN SECTION -->
             <div class="rapport-section">
                 <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
-                    <span>Maschinen:</span>
-                    <button type="button" class="btn btn-secondary" onclick="startVoiceInput('maschinenText')" style="padding: 5px 10px; font-size: 12px;">🎤 Spracheingabe</button>
+                    <span>🔧 Maschinen & Werkzeuge:</span>
+                    <div style="display: flex; gap: 5px;">
+                        <button type="button" class="btn btn-secondary" onclick="scrollToHelper('werkzeuge')" style="padding: 5px 10px; font-size: 12px;">➕ Hinzufügen</button>
+                        <button type="button" class="btn-push-to-talk" id="pttMaschinenUnten"
+                            onmousedown="startPushToTalk('maschinenText', this)"
+                            onmouseup="stopPushToTalk('maschinenText', this)"
+                            onmouseleave="stopPushToTalk('maschinenText', this)"
+                            ontouchstart="startPushToTalk('maschinenText', this); event.preventDefault();"
+                            ontouchend="stopPushToTalk('maschinenText', this)"
+                            style="padding: 5px 10px; font-size: 12px;">
+                            🎤 Spracheingabe
+                        </button>
+                    </div>
                 </div>
                 <textarea id="maschinenText" placeholder="Maschinen hier eingeben oder oben auswählen..."></textarea>
             </div>
             
             <!-- FOTOS IM FORMULAR -->
             <div id="photoSection" class="rapport-section hidden">
-                <div class="rapport-section-title">Fotos:</div>
+                <div class="rapport-section-title">📷 Fotos:</div>
                 <div id="formPhotoGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;"></div>
             </div>
             
@@ -8178,6 +8219,24 @@ brew install mkcert</div>
             // KI-Vorschläge deaktiviert - nur lokale Vorschläge
         }
         
+        // ===== SCROLL ZU HELPER =====
+        function scrollToHelper(typ) {
+            let element;
+            if (typ === 'taetigkeit') {
+                element = document.getElementById('taetigkeitHaupt');
+            } else if (typ === 'material') {
+                element = document.getElementById('materialHaupt');
+            } else if (typ === 'werkzeuge') {
+                element = document.getElementById('werkzeugeHaupt');
+            }
+
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.focus();
+                showToast('⬆️ Wähle oben eine Kategorie', 'info');
+            }
+        }
+
         // ===== KATEGORIE ANZEIGEN =====
         function zeigeKategorie(kategorie, typ) {
             const container = document.getElementById('kategorieVorschlaege');
