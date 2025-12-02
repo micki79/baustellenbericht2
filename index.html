@@ -3322,7 +3322,51 @@
                 }
             }
         }
-        
+
+        // ===== FEHLENDE FUNKTIONEN (hinzugefügt) =====
+        // updateMapMarker - Aktualisiert Karten-Marker (falls Map offen)
+        function updateMapMarker() {
+            // Diese Funktion wird aufgerufen wenn GPS aktualisiert wird
+            // Map ist nur im Map-Picker Modal aktiv, daher hier nichts tun
+            console.log('📍 GPS aktualisiert');
+        }
+
+        // reverseGeocode - Wandelt Koordinaten in Adresse um
+        async function reverseGeocode(lat, lon) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                const data = await response.json();
+
+                if (data && data.address) {
+                    const adresse = data.address;
+                    const strasse = adresse.road || adresse.pedestrian || '';
+                    const hausnr = adresse.house_number || '';
+                    const plz = adresse.postcode || '';
+                    const ort = adresse.city || adresse.town || adresse.village || adresse.municipality || '';
+
+                    // Adresse in Formular eintragen
+                    const strasseInput = document.getElementById('strasseHelper');
+                    if (strasseInput && strasse) {
+                        strasseInput.value = strasse + (hausnr ? ' ' + hausnr : '');
+                    }
+
+                    const plzInput = document.getElementById('plzHelper');
+                    if (plzInput && plz) {
+                        plzInput.value = plz;
+                    }
+
+                    const ortInput = document.getElementById('ortHelper');
+                    if (ortInput && ort) {
+                        ortInput.value = ort;
+                    }
+
+                    console.log('📍 Reverse Geocoding:', ort, strasse);
+                }
+            } catch (e) {
+                console.log('Reverse Geocoding fehlgeschlagen:', e);
+            }
+        }
+
         // ===== PROJEKT INFO ÜBERNEHMEN =====
         function copyProjektInfo() {
             const projektnummerHelper = document.getElementById('projektnummerHelper').value;
