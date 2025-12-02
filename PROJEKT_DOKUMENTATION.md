@@ -225,6 +225,7 @@ icon-192x192.png               # App Icon (optional)
 | v1.16 | 02.12.2024 | Verbesserte Protokoll-Erkennung, Multi-API IP-Fallback |
 | v3.3 | 02.12.2024 | Ultra-Mega-DB: Puter.js KI, Statistiken, Kalender, Projekte |
 | v3.3.1 | 02.12.2024 | **Push-to-Talk Spracheingabe**, Bugfixes (CSS, Tippfehler) |
+| v3.3.2 | 02.12.2024 | **Kategorien-Buttons** im Spracheingabe-Modal, KI deaktiviert |
 
 ---
 
@@ -269,7 +270,7 @@ icon-192x192.png               # App Icon (optional)
 - [x] ~~Kalender-Integration~~ ✅ **Implementiert in v3.3**
 - [x] ~~Statistiken~~ ✅ **Implementiert in v3.3**
 - [x] ~~Projektverwaltung~~ ✅ **Implementiert in v3.3**
-- [ ] **Spracheingabe-Auswahl verbessern** (Modal erscheint nicht immer)
+- [x] ~~Spracheingabe-Auswahl verbessern~~ ✅ **Kategorien-Buttons in v3.3.2**
 
 ---
 
