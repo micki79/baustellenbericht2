@@ -3278,10 +3278,16 @@
                 statusEl.innerHTML = `✅ GPS erfasst: ${finalLat}, ${finalLon} (±${avgAccuracy}m, ${measurements.length} Messungen)`;
                 
                 showToast(`GPS erfolgreich erfasst mit ±${avgAccuracy}m Genauigkeit`, 'success');
-                
+
                 // v1.15: Update GPS Source Badge
                 updateGPSSourceBadge('gps', avgAccuracy);
-                
+
+                // Update map marker
+                updateMapMarker();
+
+                // Reverse Geocoding - Adresse aus Koordinaten ermitteln
+                reverseGeocode(finalLat, finalLon);
+
             } catch (error) {
                 // v1.15: Progressive GPS with IP-Fallback
                 console.log('❌ GPS High-Accuracy fehlgeschlagen, versuche IP-Fallback...');
