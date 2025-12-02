@@ -2683,8 +2683,8 @@
             }
         }
         
-        // Globale Instanz
-        const browserCaps = new BrowserCapabilities();
+        // Globale Instanz (window. für Script-Block-übergreifenden Zugriff)
+        window.browserCaps = new BrowserCapabilities();
         
         // ===== DATA =====
         const taetigkeitenData = {
@@ -6336,8 +6336,19 @@ brew install mkcert</div>
             
             // === BROWSER STATUS BANNER ===
             function showBrowserStatusBanner() {
-                const protocol = browserCaps.protocol;
-                
+                // Fallback falls browserCaps nicht verfügbar
+                if (!window.browserCaps) {
+                    console.log('⚠️ browserCaps nicht verfügbar, prüfe isSecureContext direkt');
+                    if (window.isSecureContext) {
+                        console.log('✅ Sicherer Kontext - alle Features verfügbar');
+                        return;
+                    }
+                    // Ohne browserCaps kein Banner erstellen (verhindert Fehler)
+                    return;
+                }
+
+                const protocol = window.browserCaps.protocol;
+
                 // Nur Banner zeigen wenn nicht sicher
                 if (protocol.secure) {
                     console.log('✅ Sicherer Kontext - alle Features verfügbar');
@@ -6581,9 +6592,12 @@ brew install mkcert</div>
             function updateDebugInfoV2() {
                 const debugBox = document.getElementById('debugInfoBox');
                 if (!debugBox) return;
-                
-                const isNative = browserCaps.isNativeApp;
-                const protocol = browserCaps.protocol;
+
+                // Fallback falls browserCaps nicht verfügbar
+                if (!window.browserCaps) return;
+
+                const isNative = window.browserCaps.isNativeApp;
+                const protocol = window.browserCaps.protocol;
                 
                 // Finde die Debug-Elemente und aktualisiere sie
                 const gpsEl = document.getElementById('debugGPS');
@@ -8414,16 +8428,9 @@ brew install mkcert</div>
 
         // ===== INITIALISIERUNG =====
         document.addEventListener('DOMContentLoaded', function() {
-            // Tab-Navigation
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => {
-                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById(tab.dataset.tab).classList.add('active');
-                });
-            });
-            
+            // Tab-Navigation wird bereits über onclick="switchToTab('...')" gesteuert
+            // ENTFERNT: Konfliktierender Event-Listener der dataset.tab nutzte (existiert nicht)
+
             // Datum setzen
             const today = new Date().toISOString().split('T')[0];
             const datumInput = document.getElementById('datum');
