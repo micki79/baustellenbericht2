@@ -1900,8 +1900,7 @@
             display: inline;
         }
     </style>
-    <!-- v3.3 Ultra-Mega-DB: Puter.js für kostenlose KI -->
-    <script src="https://js.puter.com/v2/"></script>
+    <!-- Puter.js entfernt - öffnete externe Login-Seite -->
 </head>
 <body>
     <!-- MIKROFON PERMISSION PRIMING MODAL -->
@@ -2942,8 +2941,8 @@
             }
             
             setupSignaturePads();
-            // ANDROID FIX: GPS nur auf Button-Click, nicht automatisch!
-            // getGPS(); // ENTFERNT - User muss Button klicken
+            // Auto-GPS beim Laden (IP-basiert als Fallback)
+            autoLoadLocation();
             updateRapportNummer();
             
             const today = new Date();
@@ -2984,6 +2983,41 @@
             }
         }
         
+        // ===== AUTO-LOCATION BEIM SEITENAUFRUF =====
+        async function autoLoadLocation() {
+            const statusEl = document.getElementById('gpsStatus');
+            if (statusEl) {
+                statusEl.textContent = '📍 Standort wird ermittelt...';
+                statusEl.className = 'gps-status gps-loading';
+            }
+
+            try {
+                // Erst IP-basiert versuchen (schnell, keine Permission nötig)
+                const ipLoc = await getIPLocationForWeather();
+                if (ipLoc) {
+                    document.getElementById('gpsLat').value = ipLoc.lat;
+                    document.getElementById('gpsLon').value = ipLoc.lon;
+                    if (statusEl) {
+                        statusEl.textContent = `📍 ${ipLoc.city || 'Standort'} (IP-basiert, ±20km)`;
+                        statusEl.className = 'gps-status gps-success';
+                    }
+                    updateGPSSourceBadge('ip', 20000);
+                    // Jetzt Wetter laden mit diesen Koordinaten
+                    loadWetter();
+                    return;
+                }
+            } catch (e) {
+                console.log('Auto-Location fehlgeschlagen:', e);
+            }
+
+            if (statusEl) {
+                statusEl.textContent = '📍 Klicke auf "🔄 GPS neu erfassen" für genauen Standort';
+                statusEl.className = 'gps-status';
+            }
+            // Wetter trotzdem versuchen zu laden
+            loadWetter();
+        }
+
         // ===== v1.15: IP-GEOLOCATION FALLBACK =====
         async function getIPLocation() {
             console.log('🔄 GPS failed, trying IP-Geolocation fallback...');
@@ -6494,69 +6528,97 @@ brew install mkcert</div>
         
         // Wetter UI aktualisieren
         function updateWetterUI(ort, temp, desc, icon = '🌤️') {
-            document.getElementById('wetterIcon').textContent = icon;
-            document.getElementById('wetterTemp').textContent = temp + '°C';
-            document.getElementById('wetterDesc').textContent = desc;
-            document.getElementById('wetterOrt').textContent = '📍 ' + ort;
+            const wetterIcon = document.getElementById('wetterIcon');
+            const wetterTemp = document.getElementById('wetterTemp');
+            const wetterDesc = document.getElementById('wetterDesc');
+            const wetterOrt = document.getElementById('wetterOrt');
+            if (wetterIcon) wetterIcon.textContent = icon;
+            if (wetterTemp) wetterTemp.textContent = temp + '°C';
+            if (wetterDesc) wetterDesc.textContent = desc;
+            if (wetterOrt) wetterOrt.textContent = '📍 ' + ort;
+        }
+
+        // IP-Location mit mehreren Fallback-APIs
+        async function getIPLocationForWeather() {
+            const apis = [
+                { url: 'https://ipapi.co/json/', parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city }) },
+                { url: 'https://ip-api.com/json/', parse: d => ({ lat: d.lat, lon: d.lon, city: d.city }) },
+                { url: 'https://ipwho.is/', parse: d => ({ lat: d.latitude, lon: d.longitude, city: d.city }) }
+            ];
+
+            for (const api of apis) {
+                try {
+                    const res = await fetch(api.url);
+                    const data = await res.json();
+                    const parsed = api.parse(data);
+                    if (parsed.lat && parsed.lon) {
+                        console.log('✅ IP-Location von:', api.url);
+                        return parsed;
+                    }
+                } catch (e) {
+                    console.log('❌ IP-API fehlgeschlagen:', api.url);
+                }
+            }
+            return null;
         }
 
         // Wetter laden
         async function loadWetter() {
             try {
-                const lat = document.getElementById('gpsLat')?.value;
-                const lon = document.getElementById('gpsLon')?.value;
+                let lat = document.getElementById('gpsLat')?.value;
+                let lon = document.getElementById('gpsLon')?.value;
+                let city = null;
 
+                // Wenn kein GPS, versuche IP-basierte Location
                 if (!lat || !lon) {
-                    // Fallback: IP-basiert
-                    try {
-                        const ipRes = await fetch('https://ipapi.co/json/');
-                        const ipData = await ipRes.json();
-                        if (ipData.latitude && ipData.longitude) {
-                            // Wetter mit IP-Koordinaten laden
-                            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ipData.latitude}&longitude=${ipData.longitude}&current=temperature_2m,weather_code`);
-                            const data = await res.json();
-                            const temp = Math.round(data.current.temperature_2m);
-                            const code = data.current.weather_code;
-                            updateWetterUI(ipData.city || 'Unbekannt', temp, getWetterBeschreibung(code), getWetterIcon(code));
-                        } else {
-                            updateWetterUI('Unbekannt', '--', 'Standort nicht verfügbar');
-                        }
-                    } catch (e) {
-                        updateWetterUI('Unbekannt', '--', 'Wetter nicht verfügbar');
+                    const ipLoc = await getIPLocationForWeather();
+                    if (ipLoc) {
+                        lat = ipLoc.lat;
+                        lon = ipLoc.lon;
+                        city = ipLoc.city;
+                    } else {
+                        updateWetterUI('Unbekannt', '--', 'Standort nicht verfügbar');
+                        return;
                     }
-                    return;
                 }
-                
-                // Open-Meteo API (kostenlos, kein API-Key)
+
+                // Wetter von Open-Meteo laden
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
                 const data = await res.json();
 
-                const temp = Math.round(data.current.temperature_2m);
-                const code = data.current.weather_code;
-                const desc = getWetterBeschreibung(code);
-                const icon = getWetterIcon(code);
+                if (data.current) {
+                    const temp = Math.round(data.current.temperature_2m);
+                    const code = data.current.weather_code;
+                    const desc = getWetterBeschreibung(code);
+                    const icon = getWetterIcon(code);
 
-                // Ort aus Reverse Geocoding holen (falls verfügbar)
-                let ort = 'GPS-Position';
-                try {
-                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-                    const geoData = await geoRes.json();
-                    ort = geoData.address?.city || geoData.address?.town || geoData.address?.village || 'GPS-Position';
-                } catch (e) { /* Ignorieren */ }
+                    // Ort ermitteln
+                    let ort = city || 'Dein Standort';
+                    if (!city) {
+                        try {
+                            const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                            const geoData = await geoRes.json();
+                            ort = geoData.address?.city || geoData.address?.town || geoData.address?.village || 'Dein Standort';
+                        } catch (e) { /* ignore */ }
+                    }
 
-                updateWetterUI(ort, temp, desc, icon);
+                    updateWetterUI(ort, temp, desc, icon);
 
-                // Prüfe auf Schlechtwetter
-                if (code >= 61) { // Regen/Schnee
-                    document.getElementById('wetterWidget').classList.add('wetter-warning');
-                    document.getElementById('wetterDesc').textContent = '⚠️ ' + desc + ' - Schlechtwetter!';
+                    // Schlechtwetter-Warnung
+                    if (code >= 61) {
+                        const widget = document.getElementById('wetterWidget');
+                        if (widget) widget.classList.add('wetter-warning');
+                        updateWetterUI(ort, temp, '⚠️ ' + desc + ' - Schlechtwetter!', icon);
+                    }
+                } else {
+                    updateWetterUI('Unbekannt', '--', 'Keine Wetterdaten');
                 }
             } catch (e) {
                 console.log('Wetter-Fehler:', e);
                 updateWetterUI('Unbekannt', '--', 'Fehler beim Laden');
             }
         }
-        
+
         function getWetterIcon(code) {
             if (code === 0) return '☀️';
             if (code <= 3) return '🌤️';
@@ -8357,10 +8419,10 @@ brew install mkcert</div>
             for (const arr of Object.values(baustellenDatenbank.formulierungen)) {
                 formCount += arr.length;
             }
-            console.log(`📊 Baustellenbericht v3.3 Ultra-Mega-Datenbank geladen:`);
+            console.log(`📊 Baustellenbericht v3.3.4 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
-            console.log(`   ✅ Puter.js KI-Integration verfügbar`);
+            console.log(`   ℹ️ KI deaktiviert (nur lokale Vorschläge)`);
         });
         
         
