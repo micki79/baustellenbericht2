@@ -2043,7 +2043,7 @@
                 <input type="text" id="projektnummerHelper" placeholder="z.B. P-2024-001">
                 <label>Baustelle:</label>
                 <input type="text" id="baustelleHelper" placeholder="z.B. Aldi Sindelfingen">
-                <button type="button" class="btn btn-success" onclick="copyProjektInfo()">✅“ Übernehmen</button>
+                <button type="button" class="btn btn-success" onclick="copyProjektInfo()">✅ Übernehmen</button>
             </div>
             
             <!-- GPS -->
@@ -4280,7 +4280,7 @@
                     <div style="background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90%; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
                         <div style="padding: 20px; border-bottom: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
                             <h3 style="margin: 0;">📍 Standort auf Karte wählen</h3>
-                            <button onclick="closeMapPicker()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">✅• Schließen</button>
+                            <button onclick="closeMapPicker()" style="background: #dc2626; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: bold;">❌ Schließen</button>
                         </div>
                         <div style="padding: 15px; background: #f3f4f6;">
                             <p style="margin: 0; font-size: 14px;">
@@ -5200,10 +5200,6 @@
             showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
         }
 
-        function startVoiceInputHelper(targetId) {
-            showToast('ℹ️ Bitte den Push-to-Talk Button gedrückt halten', 'info');
-        }
-
         // Alte startVoiceInput Funktion (wird nicht mehr verwendet, aber für Kompatibilität behalten)
         async function startVoiceInputOld(targetId) {
             if (!browserCaps.features.speechRecognition) {
@@ -5290,12 +5286,21 @@
         
         // ===== TOAST =====
         function showToast(message, type = 'success') {
+            // Entferne existierende Toasts
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) existingToast.remove();
+
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.textContent = message;
-            
+
+            // Farbe basierend auf Typ
+            if (type === 'success') toast.style.background = '#22c55e';
+            else if (type === 'error') toast.style.background = '#ef4444';
+            else if (type === 'info') toast.style.background = '#3b82f6';
+
             document.body.appendChild(toast);
-            
+
             setTimeout(() => {
                 toast.style.opacity = '0';
                 setTimeout(() => toast.remove(), 300);
@@ -6487,33 +6492,60 @@ brew install mkcert</div>
             }
         }
         
+        // Wetter UI aktualisieren
+        function updateWetterUI(ort, temp, desc, icon = '🌤️') {
+            document.getElementById('wetterIcon').textContent = icon;
+            document.getElementById('wetterTemp').textContent = temp + '°C';
+            document.getElementById('wetterDesc').textContent = desc;
+            document.getElementById('wetterOrt').textContent = '📍 ' + ort;
+        }
+
         // Wetter laden
         async function loadWetter() {
             try {
                 const lat = document.getElementById('gpsLat')?.value;
                 const lon = document.getElementById('gpsLon')?.value;
-                
+
                 if (!lat || !lon) {
                     // Fallback: IP-basiert
-                    const ipRes = await fetch('https://ipapi.co/json/');
-                    const ipData = await ipRes.json();
-                    updateWetterUI(ipData.city || 'Unbekannt', 15, 'Standort wird ermittelt...');
+                    try {
+                        const ipRes = await fetch('https://ipapi.co/json/');
+                        const ipData = await ipRes.json();
+                        if (ipData.latitude && ipData.longitude) {
+                            // Wetter mit IP-Koordinaten laden
+                            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${ipData.latitude}&longitude=${ipData.longitude}&current=temperature_2m,weather_code`);
+                            const data = await res.json();
+                            const temp = Math.round(data.current.temperature_2m);
+                            const code = data.current.weather_code;
+                            updateWetterUI(ipData.city || 'Unbekannt', temp, getWetterBeschreibung(code), getWetterIcon(code));
+                        } else {
+                            updateWetterUI('Unbekannt', '--', 'Standort nicht verfügbar');
+                        }
+                    } catch (e) {
+                        updateWetterUI('Unbekannt', '--', 'Wetter nicht verfügbar');
+                    }
                     return;
                 }
                 
                 // Open-Meteo API (kostenlos, kein API-Key)
                 const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`);
                 const data = await res.json();
-                
+
                 const temp = Math.round(data.current.temperature_2m);
                 const code = data.current.weather_code;
                 const desc = getWetterBeschreibung(code);
                 const icon = getWetterIcon(code);
-                
-                document.getElementById('wetterIcon').textContent = icon;
-                document.getElementById('wetterTemp').textContent = temp + '°C';
-                document.getElementById('wetterDesc').textContent = desc;
-                
+
+                // Ort aus Reverse Geocoding holen (falls verfügbar)
+                let ort = 'GPS-Position';
+                try {
+                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+                    const geoData = await geoRes.json();
+                    ort = geoData.address?.city || geoData.address?.town || geoData.address?.village || 'GPS-Position';
+                } catch (e) { /* Ignorieren */ }
+
+                updateWetterUI(ort, temp, desc, icon);
+
                 // Prüfe auf Schlechtwetter
                 if (code >= 61) { // Regen/Schnee
                     document.getElementById('wetterWidget').classList.add('wetter-warning');
@@ -6521,6 +6553,7 @@ brew install mkcert</div>
                 }
             } catch (e) {
                 console.log('Wetter-Fehler:', e);
+                updateWetterUI('Unbekannt', '--', 'Fehler beim Laden');
             }
         }
         
@@ -8290,33 +8323,7 @@ brew install mkcert</div>
                 showToast('✅ Material übernommen', 'success');
             }
         }
-        
-        // ===== TOAST NOTIFICATION =====
-        function showToast(message, type = 'info') {
-            const existingToast = document.querySelector('.toast');
-            if (existingToast) existingToast.remove();
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.style.cssText = `
-                position: fixed;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-size: 14px;
-                z-index: 10000;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            `;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            
-            setTimeout(() => toast.remove(), 3000);
-        }
-        
+
         // ===== INITIALISIERUNG =====
         document.addEventListener('DOMContentLoaded', function() {
             // Tab-Navigation

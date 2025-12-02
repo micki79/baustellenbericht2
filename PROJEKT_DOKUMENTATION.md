@@ -3,7 +3,7 @@
 ## 📋 Projekt-Übersicht
 
 **App-Name:** Baustellenbericht App für Fliesen Unger Süd GmbH
-**Aktuelle Version:** v3.3 Ultra-Mega-DB
+**Aktuelle Version:** v3.3.3 Ultra-Mega-DB
 **Datei:** `index.html`
 **Typ:** Single-File HTML Progressive Web App
 **Sprache:** Deutsch
@@ -199,7 +199,18 @@ icon-192x192.png               # App Icon (optional)
 
 ---
 
-## 🐛 Behobene Bugs (v3.3.1 - 02.12.2024)
+## 🐛 Behobene Bugs (v3.3.3 - 02.12.2024)
+
+| Bug | Zeile | Korrektur |
+|-----|-------|-----------|
+| Extra Quote | 2046 | `✅" Übernehmen` → `✅ Übernehmen` |
+| Duplikat | 5203 | `startVoiceInputHelper` war doppelt definiert |
+| Duplikat | 8295 | `showToast` war doppelt definiert - verbessert & vereinheitlicht |
+| Fehlende Funktion | 6500 | `updateWetterUI()` hinzugefügt |
+| Falsches Emoji | 4283 | `✅• Schließen` → `❌ Schließen` |
+| Wetter | 6503-6556 | IP-basiertes Wetter lädt jetzt korrekt mit echten Koordinaten |
+
+## 🐛 Behobene Bugs (v3.3.1)
 
 | Bug | Zeile | Korrektur |
 |-----|-------|-----------|
@@ -226,6 +237,7 @@ icon-192x192.png               # App Icon (optional)
 | v3.3 | 02.12.2024 | Ultra-Mega-DB: Puter.js KI, Statistiken, Kalender, Projekte |
 | v3.3.1 | 02.12.2024 | **Push-to-Talk Spracheingabe**, Bugfixes (CSS, Tippfehler) |
 | v3.3.2 | 02.12.2024 | **Kategorien-Buttons** im Spracheingabe-Modal, KI deaktiviert |
+| v3.3.3 | 02.12.2024 | **Bugfixes**: Doppelte Funktionen entfernt, Wetter-API verbessert, updateWetterUI hinzugefügt |
 
 ---
 
@@ -319,4 +331,4 @@ Hauptanforderung: **Schnelle Dateneingabe auf der Baustelle mit Handschuhen/schm
 
 *Dokumentation erstellt: 02.12.2024*
 *Zuletzt aktualisiert: 02.12.2024*
-*Für: Baustellenbericht App v3.3.1 Ultra-Mega-DB*
+*Für: Baustellenbericht App v3.3.3 Ultra-Mega-DB*
