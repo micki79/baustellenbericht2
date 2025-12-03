@@ -3370,18 +3370,24 @@
                 const banner = document.getElementById('httpsWarningBanner');
                 if (banner) {
                     banner.style.display = 'flex';
-                    document.getElementById('currentProtocol').textContent = window.location.protocol + '//' + window.location.hostname;
+                    const currProto = document.getElementById('currentProtocol');
+                    if (currProto) currProto.textContent = window.location.protocol + '//' + window.location.hostname;
                 }
-                
+
                 // Zeige Debug Info Box
                 const debugBox = document.getElementById('debugInfoBox');
                 if (debugBox) {
                     debugBox.style.display = 'block';
-                    document.getElementById('debugProtocol').textContent = window.location.protocol + (window.location.protocol === 'http:' ? ' ❌' : ' ✅');
-                    document.getElementById('debugSecure').textContent = window.isSecureContext ? '✅ JA' : '❌ NEIN';
-                    document.getElementById('debugGPS').textContent = 'geolocation' in navigator ? '✅' : '❌';
-                    document.getElementById('debugSpeech').textContent = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) ? '✅' : '❌';
-                    document.getElementById('debugBarcode').textContent = 'BarcodeDetector' in window ? '✅' : '⚠️ Fallback';
+                    const dbgProto = document.getElementById('debugProtocol');
+                    const dbgSecure = document.getElementById('debugSecure');
+                    const dbgGPS = document.getElementById('debugGPS');
+                    const dbgSpeech = document.getElementById('debugSpeech');
+                    const dbgBarcode = document.getElementById('debugBarcode');
+                    if (dbgProto) dbgProto.textContent = window.location.protocol + (window.location.protocol === 'http:' ? ' ❌' : ' ✅');
+                    if (dbgSecure) dbgSecure.textContent = window.isSecureContext ? '✅ JA' : '❌ NEIN';
+                    if (dbgGPS) dbgGPS.textContent = 'geolocation' in navigator ? '✅' : '❌';
+                    if (dbgSpeech) dbgSpeech.textContent = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) ? '✅' : '❌';
+                    if (dbgBarcode) dbgBarcode.textContent = 'BarcodeDetector' in window ? '✅' : '⚠️ Fallback';
                 }
                 
                 console.log('🛠️ v1.14 Debug-Tools aktiviert:');
@@ -3404,20 +3410,27 @@
             initFirebase();
 
             const today = new Date();
-            document.getElementById('datum').valueAsDate = today;
-            
+            const datumEl = document.getElementById('datum');
+            if (datumEl) datumEl.valueAsDate = today;
+
             // Update datum displays
             const dateStr = today.toLocaleDateString('de-DE');
-            document.getElementById('datumDisplay1').textContent = dateStr;
-            document.getElementById('datumDisplay2').textContent = dateStr;
-            
+            const datumDisplay1 = document.getElementById('datumDisplay1');
+            const datumDisplay2 = document.getElementById('datumDisplay2');
+            if (datumDisplay1) datumDisplay1.textContent = dateStr;
+            if (datumDisplay2) datumDisplay2.textContent = dateStr;
+
             // Listen to datum changes
-            document.getElementById('datum').addEventListener('change', function() {
-                const date = new Date(this.value);
-                const dateStr = date.toLocaleDateString('de-DE');
-                document.getElementById('datumDisplay1').textContent = dateStr;
-                document.getElementById('datumDisplay2').textContent = dateStr;
-            });
+            if (datumEl) {
+                datumEl.addEventListener('change', function() {
+                    const date = new Date(this.value);
+                    const dateStr = date.toLocaleDateString('de-DE');
+                    const dd1 = document.getElementById('datumDisplay1');
+                    const dd2 = document.getElementById('datumDisplay2');
+                    if (dd1) dd1.textContent = dateStr;
+                    if (dd2) dd2.textContent = dateStr;
+                });
+            }
             
             // Initialize Auto-Save
             restoreAutoSave();
@@ -3429,13 +3442,15 @@
         function switchToTab(tabName) {
             const tabs = document.querySelectorAll('.tab');
             const contents = document.querySelectorAll('.tab-content');
-            
+
             tabs.forEach(tab => tab.classList.remove('active'));
             contents.forEach(content => content.classList.remove('active'));
-            
-            document.querySelector(`[onclick="switchToTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(`tab-${tabName}`).classList.add('active');
-            
+
+            const tabBtn = document.querySelector(`[onclick="switchToTab('${tabName}')"]`);
+            const tabContent = document.getElementById(`tab-${tabName}`);
+            if (tabBtn) tabBtn.classList.add('active');
+            if (tabContent) tabContent.classList.add('active');
+
             if (tabName === 'liste') {
                 loadBerichte();
             }
@@ -3446,19 +3461,22 @@
         // KI Settings Modal öffnen/schließen
         function openKISettings() {
             const modal = document.getElementById('kiSettingsModal');
-            modal.style.display = 'flex';
+            if (modal) modal.style.display = 'flex';
             loadKISettings();
             updateKISettingsStatus();
         }
 
         function closeKISettings() {
-            document.getElementById('kiSettingsModal').style.display = 'none';
+            const modal = document.getElementById('kiSettingsModal');
+            if (modal) modal.style.display = 'none';
         }
 
         // API Keys speichern/laden
         function saveKISettings() {
-            const groqKey = document.getElementById('groqApiKey').value.trim();
-            const geminiKey = document.getElementById('geminiApiKey').value.trim();
+            const groqEl = document.getElementById('groqApiKey');
+            const geminiEl = document.getElementById('geminiApiKey');
+            const groqKey = groqEl ? groqEl.value.trim() : '';
+            const geminiKey = geminiEl ? geminiEl.value.trim() : '';
 
             if (groqKey) localStorage.setItem('groqApiKey', groqKey);
             else localStorage.removeItem('groqApiKey');
@@ -3475,8 +3493,10 @@
             const groqKey = localStorage.getItem('groqApiKey') || '';
             const geminiKey = localStorage.getItem('geminiApiKey') || '';
 
-            document.getElementById('groqApiKey').value = groqKey;
-            document.getElementById('geminiApiKey').value = geminiKey;
+            const groqEl = document.getElementById('groqApiKey');
+            const geminiEl = document.getElementById('geminiApiKey');
+            if (groqEl) groqEl.value = groqKey;
+            if (geminiEl) geminiEl.value = geminiKey;
         }
 
         function updateKISettingsStatus() {
@@ -6143,28 +6163,38 @@ ${rawText}`;
                 tbody.appendChild(row);
                 
                 // Erhöhe Counter nur wenn automatische Position verwendet wurde
-                if (document.getElementById('taetigkeitPosition').value.trim() === '') {
+                const posEl = document.getElementById('taetigkeitPosition');
+                if (posEl && posEl.value.trim() === '') {
                     taetigkeitenRowCounter++;
                 }
             });
-            
+
             // RESET nach Hinzufügen
             selectedTaetigkeiten = [];
-            document.getElementById('taetigkeitenChips').innerHTML = '';
-            document.getElementById('taetigkeitHaupt').value = '';
-            document.getElementById('taetigkeitPosition').value = '';
-            document.getElementById('taetigkeitMenge').value = '';
-            document.getElementById('taetigkeitEinheit').value = '';
-            
+            const tChips = document.getElementById('taetigkeitenChips');
+            const tHaupt = document.getElementById('taetigkeitHaupt');
+            const tPosition = document.getElementById('taetigkeitPosition');
+            const tMenge = document.getElementById('taetigkeitMenge');
+            const tEinheit = document.getElementById('taetigkeitEinheit');
+            if (tChips) tChips.innerHTML = '';
+            if (tHaupt) tHaupt.value = '';
+            if (tPosition) tPosition.value = '';
+            if (tMenge) tMenge.value = '';
+            if (tEinheit) tEinheit.value = '';
+
             showToast('Tätigkeiten zur Tabelle hinzugefügt', 'success');
         }
         
         function addMaterialToForm() {
             const textarea = document.getElementById('materialText');
-            const helperText = document.getElementById('materialHelperText').value.trim();
-            const menge = document.getElementById('materialMenge').value.trim();
-            const einheit = document.getElementById('materialEinheit').value;
-            const laufmeter = document.getElementById('materialLaufmeter').value.trim();
+            const helperTextEl = document.getElementById('materialHelperText');
+            const mengeEl = document.getElementById('materialMenge');
+            const einheitEl = document.getElementById('materialEinheit');
+            const laufmeterEl = document.getElementById('materialLaufmeter');
+            const helperText = helperTextEl ? helperTextEl.value.trim() : '';
+            const menge = mengeEl ? mengeEl.value.trim() : '';
+            const einheit = einheitEl ? einheitEl.value : '';
+            const laufmeter = laufmeterEl ? laufmeterEl.value.trim() : '';
             
             // Sammle alle Einträge: Chips + Textarea
             let allItems = [];
@@ -6197,24 +6227,28 @@ ${rawText}`;
             }
             
             // Füge zum Formular hinzu
-            const current = textarea.value.trim();
+            const current = textarea ? textarea.value.trim() : '';
             const newItems = allItems.map(item => prefix + item + suffix).join('\n');
-            
-            if (current) {
-                textarea.value = current + '\n' + newItems;
-            } else {
-                textarea.value = newItems;
+
+            if (textarea) {
+                if (current) {
+                    textarea.value = current + '\n' + newItems;
+                } else {
+                    textarea.value = newItems;
+                }
             }
-            
+
             // RESET nach Übernehmen
             selectedMaterial = [];
-            document.getElementById('materialChips').innerHTML = '';
-            document.getElementById('materialHaupt').value = '';
-            document.getElementById('materialHelperText').value = '';
-            document.getElementById('materialMenge').value = '';
-            document.getElementById('materialEinheit').value = '';
-            document.getElementById('materialLaufmeter').value = '';
-            
+            const mChips = document.getElementById('materialChips');
+            const mHaupt = document.getElementById('materialHaupt');
+            if (mChips) mChips.innerHTML = '';
+            if (mHaupt) mHaupt.value = '';
+            if (helperTextEl) helperTextEl.value = '';
+            if (mengeEl) mengeEl.value = '';
+            if (einheitEl) einheitEl.value = '';
+            if (laufmeterEl) laufmeterEl.value = '';
+
             showToast('Material übernommen', 'success');
         }
         
@@ -6584,13 +6618,20 @@ ${rawText}`;
         
         // ===== SAVE =====
         function saveBericht() {
-            const rapportNr = document.getElementById('rapportNummer').textContent;
-            const datum = document.getElementById('datum').value;
-            const projektnummer = document.getElementById('projektnummer').value;
-            const baustelle = document.getElementById('baustelle').value;
-            const gpsLat = document.getElementById('gpsLat').value;
-            const gpsLon = document.getElementById('gpsLon').value;
-            
+            const rapportNrEl = document.getElementById('rapportNummer');
+            const datumEl = document.getElementById('datum');
+            const projektnummerEl = document.getElementById('projektnummer');
+            const baustelleEl = document.getElementById('baustelle');
+            const gpsLatEl = document.getElementById('gpsLat');
+            const gpsLonEl = document.getElementById('gpsLon');
+
+            const rapportNr = rapportNrEl ? rapportNrEl.textContent : '';
+            const datum = datumEl ? datumEl.value : '';
+            const projektnummer = projektnummerEl ? projektnummerEl.value : '';
+            const baustelle = baustelleEl ? baustelleEl.value : '';
+            const gpsLat = gpsLatEl ? gpsLatEl.value : '';
+            const gpsLon = gpsLonEl ? gpsLonEl.value : '';
+
             if (!baustelle) {
                 alert('⚠️ Bitte Baustelle eingeben!');
                 return;
@@ -6598,7 +6639,7 @@ ${rawText}`;
             
             // Collect all activities from table - v3.3 Ultra-Mega-DB fixed
             const tbody = document.getElementById('taetigkeitenTable');
-            const rows = tbody.querySelectorAll('tr');
+            const rows = tbody ? tbody.querySelectorAll('tr') : [];
             const taetigkeiten = [];
             
             rows.forEach(row => {
@@ -6620,7 +6661,10 @@ ${rawText}`;
             // v3.3 Ultra-Mega-DB: Berechne Gesamtstunden und km für Statistiken
             const gesamtStunden = personalListe.reduce((sum, p) => sum + (p.anzahl * p.stunden), 0);
             const gesamtKm = fahrzeugListe.reduce((sum, f) => sum + (f.anzahl * f.km), 0);
-            
+
+            const materialEl = document.getElementById('materialText');
+            const maschinenEl = document.getElementById('maschinenText');
+
             const bericht = {
                 rapportNr,
                 datum,
@@ -6628,8 +6672,8 @@ ${rawText}`;
                 baustelle,
                 gps: { lat: gpsLat, lon: gpsLon },
                 taetigkeiten,
-                material: document.getElementById('materialText').value,
-                maschinen: document.getElementById('maschinenText').value,
+                material: materialEl ? materialEl.value : '',
+                maschinen: maschinenEl ? maschinenEl.value : '',
                 personal: [...personalListe],
                 fahrzeuge: [...fahrzeugListe],
                 photos: [...photos],
