@@ -4869,12 +4869,17 @@ Wichtig:
             try {
                 // Prüfen ob Tesseract geladen ist
                 if (typeof Tesseract === 'undefined') {
-                    throw new Error('Tesseract.js nicht geladen');
+                    throw new Error('Tesseract.js nicht geladen. Bitte Seite neu laden.');
+                }
+
+                // Prüfen ob recognize Funktion existiert
+                if (typeof Tesseract.recognize !== 'function') {
+                    throw new Error('Tesseract API nicht verfügbar');
                 }
 
                 updateOcrStatus('🔍', 'Erkenne Text im Bild...', 30);
 
-                // OCR durchführen
+                // OCR durchführen (Tesseract.js v5 API)
                 const result = await Tesseract.recognize(
                     imageData,
                     'deu', // Deutsch
@@ -5052,6 +5057,14 @@ ${rawText}`;
 
         // Tätigkeit aus OCR-Text hinzufügen
         function addTaetigkeitFromOcr(text) {
+            const tbody = document.getElementById('taetigkeitenTable');
+            if (!tbody) {
+                console.error('taetigkeitenTable nicht gefunden');
+                return;
+            }
+
+            const datum = document.getElementById('datum')?.value || new Date().toISOString().split('T')[0];
+
             // Teile den Text in Zeilen auf
             const lines = text.split('\n').filter(l => l.trim());
 
@@ -5067,36 +5080,43 @@ ${rawText}`;
                 let menge = '';
                 let einheit = 'm²';
 
-                const mengeMatch = cleanLine.match(/(\d+(?:[.,]\d+)?)\s*(m²|qm|stk|stück|lfm|m|kg|l)/i);
+                // Regex mit Wortgrenze (\b) um falsche Treffer zu vermeiden
+                const mengeMatch = cleanLine.match(/(\d+(?:[.,]\d+)?)\s*(m²|qm|stk|stück|lfm|kg|l|m)\b/i);
                 if (mengeMatch) {
                     menge = mengeMatch[1].replace(',', '.');
+                    // Einheit normalisieren (toLowerCase + Konvertierung)
                     einheit = mengeMatch[2].toLowerCase();
                     if (einheit === 'qm') einheit = 'm²';
-                    if (einheit === 'stück') einheit = 'stk';
+                    if (einheit === 'stück') einheit = 'Stk';
+                    if (einheit === 'stk') einheit = 'Stk';
+                    if (einheit === 'lfm') einheit = 'lfm';
+                    if (einheit === 'kg') einheit = 'kg';
+                    if (einheit === 'l') einheit = 'l';
+                    if (einheit === 'm') einheit = 'm';
                     // Entferne die Menge aus der Beschreibung
                     cleanLine = cleanLine.replace(mengeMatch[0], '').trim();
                 }
 
-                // Tätigkeit zur Tabelle hinzufügen
-                if (typeof addTaetigkeitRow === 'function') {
-                    const row = addTaetigkeitRow();
-                    if (row) {
-                        const inputs = row.querySelectorAll('input');
-                        const textarea = row.querySelector('textarea');
-                        if (textarea) textarea.value = cleanLine;
-                        if (inputs[1]) inputs[1].value = menge; // Menge
+                // Position automatisch ermitteln
+                const position = (typeof taetigkeitenRowCounter !== 'undefined')
+                    ? taetigkeitenRowCounter.toString()
+                    : (tbody.rows.length + 1).toString();
 
-                        const select = row.querySelector('select');
-                        if (select) {
-                            // Versuche passende Einheit zu finden
-                            for (let option of select.options) {
-                                if (option.value.toLowerCase() === einheit) {
-                                    select.value = option.value;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                // Neue Zeile mit contenteditable TDs erstellen (wie im Original-Code)
+                const row = document.createElement('tr');
+                row.className = 'editable-row';
+                row.innerHTML = `
+                    <td contenteditable="true">${position}</td>
+                    <td>${datum}</td>
+                    <td contenteditable="true">${cleanLine}</td>
+                    <td contenteditable="true">${menge}</td>
+                    <td contenteditable="true">${einheit}</td>
+                `;
+                tbody.appendChild(row);
+
+                // Counter erhöhen wenn vorhanden
+                if (typeof taetigkeitenRowCounter !== 'undefined') {
+                    taetigkeitenRowCounter++;
                 }
             });
         }
