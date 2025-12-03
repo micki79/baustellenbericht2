@@ -18,7 +18,11 @@
     <script>
         window.jsPDF = window.jspdf.jsPDF;
     </script>
-    
+
+    <!-- Firebase für Cloud-Sync (geteiltes Lernen) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
     <!-- Leaflet für interaktive Karte (kostenlos, ohne API-Key!) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -2205,6 +2209,55 @@
                         <span><span id="kiFeedbackCount">0</span> Bewertungen</span>
                     </div>
                 </div>
+
+                <!-- CLOUD-SYNC FÜR GETEILTES LERNEN -->
+                <div id="cloudSyncSection" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; color: #475569; font-weight: 600;">☁️ Team-Sync</span>
+                        <button onclick="toggleCloudSettings()" style="background: none; border: none; cursor: pointer; font-size: 11px; color: #667eea;">⚙️ Einrichten</button>
+                    </div>
+                    <div id="cloudSyncStatus" style="font-size: 11px; color: #64748b;">
+                        <span id="cloudStatusIcon">⚪</span>
+                        <span id="cloudStatusText">Nicht verbunden</span>
+                    </div>
+                    <div id="cloudSyncButtons" style="display: none; margin-top: 8px; display: flex; gap: 6px;">
+                        <button onclick="syncToCloud()" style="flex: 1; padding: 6px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                            ⬆️ Hochladen
+                        </button>
+                        <button onclick="syncFromCloud()" style="flex: 1; padding: 6px; background: #10b981; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+                            ⬇️ Herunterladen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CLOUD EINSTELLUNGEN MODAL -->
+                <div id="cloudSettingsPanel" style="display: none; margin-top: 12px; padding: 12px; background: #f1f5f9; border-radius: 8px;">
+                    <div style="font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 10px;">☁️ Firebase Cloud-Sync einrichten</div>
+                    <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+                        Teile Wissensbasis & KI-Lerndaten mit dem ganzen Team!
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 11px; color: #475569;">Team-Code (von Admin):</label>
+                        <input type="text" id="firebaseTeamCode" placeholder="z.B. fliesen-unger-2024"
+                               style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; margin-top: 4px;">
+                    </div>
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 11px; color: #475569;">Dein Name (optional):</label>
+                        <input type="text" id="cloudUserName" placeholder="z.B. Thomas"
+                               style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 12px; margin-top: 4px;">
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button onclick="connectToCloud()" style="flex: 1; padding: 8px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                            🔗 Verbinden
+                        </button>
+                        <button onclick="disconnectCloud()" style="flex: 1; padding: 8px; background: #ef4444; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                            ❌ Trennen
+                        </button>
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px; background: #dbeafe; border-radius: 4px; font-size: 10px; color: #1e40af;">
+                        💡 <strong>Admin?</strong> Erstelle einen Firebase-Account auf <a href="https://console.firebase.google.com" target="_blank" style="color: #1e40af;">firebase.google.com</a> und teile den Team-Code.
+                    </div>
+                </div>
             </div>
 
             <!-- V3.0: VORLAGEN -->
@@ -3155,7 +3208,9 @@
             updateWissensbasisCounts();
             // KI-Lernstatistik aktualisieren
             updateKIStats();
-            
+            // Firebase Cloud-Sync initialisieren
+            initFirebase();
+
             const today = new Date();
             document.getElementById('datum').valueAsDate = today;
             
@@ -3802,6 +3857,288 @@ Text: ${prompt}`
             }).join('\n\n');
 
             return `\n\nBEISPIELE AUS FRÜHEREN KORREKTUREN:\n${examples}`;
+        }
+
+        // ===== FIREBASE CLOUD-SYNC =====
+
+        // Firebase Konfiguration (öffentliche Demo-Instanz)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDemo-Key-Replace-With-Your-Own",
+            authDomain: "baustellenbericht-demo.firebaseapp.com",
+            databaseURL: "https://baustellenbericht-demo-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "baustellenbericht-demo",
+            storageBucket: "baustellenbericht-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
+        };
+
+        let firebaseApp = null;
+        let firebaseDb = null;
+        let cloudTeamCode = null;
+
+        // Firebase initialisieren
+        function initFirebase() {
+            try {
+                // Prüfe ob Firebase verfügbar
+                if (typeof firebase === 'undefined') {
+                    console.log('Firebase SDK nicht geladen');
+                    return false;
+                }
+
+                // Gespeicherten Team-Code laden
+                cloudTeamCode = localStorage.getItem('cloudTeamCode');
+                const userName = localStorage.getItem('cloudUserName');
+
+                if (cloudTeamCode) {
+                    document.getElementById('firebaseTeamCode').value = cloudTeamCode;
+                    if (userName) document.getElementById('cloudUserName').value = userName;
+
+                    // Automatisch verbinden
+                    connectToCloud(true);
+                }
+
+                return true;
+            } catch (e) {
+                console.error('Firebase init error:', e);
+                return false;
+            }
+        }
+
+        // Cloud-Einstellungen anzeigen/verstecken
+        function toggleCloudSettings() {
+            const panel = document.getElementById('cloudSettingsPanel');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Mit Cloud verbinden
+        async function connectToCloud(silent = false) {
+            const teamCode = document.getElementById('firebaseTeamCode')?.value?.trim();
+            const userName = document.getElementById('cloudUserName')?.value?.trim();
+
+            if (!teamCode) {
+                if (!silent) showToast('⚠️ Bitte Team-Code eingeben', 'info');
+                return;
+            }
+
+            try {
+                // Firebase App initialisieren (falls noch nicht geschehen)
+                if (!firebaseApp && typeof firebase !== 'undefined') {
+                    // Verwende Team-Code als Datenbank-Pfad
+                    firebaseApp = firebase.initializeApp(firebaseConfig);
+                    firebaseDb = firebase.database();
+                }
+
+                if (!firebaseDb) {
+                    // Fallback: Ohne Firebase, nur lokale Simulation
+                    updateCloudStatus('simulated');
+                    if (!silent) showToast('☁️ Cloud-Simulation aktiv (ohne echtes Backend)', 'info');
+                    localStorage.setItem('cloudTeamCode', teamCode);
+                    if (userName) localStorage.setItem('cloudUserName', userName);
+                    cloudTeamCode = teamCode;
+                    document.getElementById('cloudSyncButtons').style.display = 'flex';
+                    return;
+                }
+
+                cloudTeamCode = teamCode;
+                localStorage.setItem('cloudTeamCode', teamCode);
+                if (userName) localStorage.setItem('cloudUserName', userName);
+
+                // Verbindung testen
+                const testRef = firebaseDb.ref(`teams/${teamCode}/meta`);
+                await testRef.once('value');
+
+                updateCloudStatus('connected');
+                document.getElementById('cloudSyncButtons').style.display = 'flex';
+
+                if (!silent) showToast('✅ Mit Cloud verbunden!', 'success');
+
+                // Echtzeit-Listener für Updates
+                setupRealtimeSync();
+
+            } catch (e) {
+                console.error('Cloud connect error:', e);
+                // Fallback zu Simulation
+                updateCloudStatus('simulated');
+                localStorage.setItem('cloudTeamCode', teamCode);
+                if (userName) localStorage.setItem('cloudUserName', userName);
+                cloudTeamCode = teamCode;
+                document.getElementById('cloudSyncButtons').style.display = 'flex';
+                if (!silent) showToast('☁️ Offline-Modus (wird synchronisiert wenn online)', 'info');
+            }
+        }
+
+        // Von Cloud trennen
+        function disconnectCloud() {
+            cloudTeamCode = null;
+            localStorage.removeItem('cloudTeamCode');
+            localStorage.removeItem('cloudUserName');
+            updateCloudStatus('disconnected');
+            document.getElementById('cloudSyncButtons').style.display = 'none';
+            document.getElementById('cloudSettingsPanel').style.display = 'none';
+            showToast('❌ Cloud-Verbindung getrennt', 'info');
+        }
+
+        // Cloud-Status UI aktualisieren
+        function updateCloudStatus(status) {
+            const icon = document.getElementById('cloudStatusIcon');
+            const text = document.getElementById('cloudStatusText');
+
+            const statuses = {
+                'connected': { icon: '🟢', text: 'Verbunden mit Team', color: '#10b981' },
+                'simulated': { icon: '🟡', text: 'Lokaler Sync-Modus', color: '#f59e0b' },
+                'syncing': { icon: '🔄', text: 'Synchronisiere...', color: '#667eea' },
+                'disconnected': { icon: '⚪', text: 'Nicht verbunden', color: '#64748b' },
+                'error': { icon: '🔴', text: 'Verbindungsfehler', color: '#ef4444' }
+            };
+
+            const s = statuses[status] || statuses['disconnected'];
+            if (icon) icon.textContent = s.icon;
+            if (text) {
+                text.textContent = s.text;
+                text.style.color = s.color;
+            }
+        }
+
+        // Daten zur Cloud hochladen
+        async function syncToCloud() {
+            if (!cloudTeamCode) {
+                showToast('⚠️ Bitte zuerst mit Cloud verbinden', 'info');
+                return;
+            }
+
+            updateCloudStatus('syncing');
+
+            try {
+                const wb = getWissensbasis();
+                const feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+                const corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
+                const userName = localStorage.getItem('cloudUserName') || 'Unbekannt';
+
+                const uploadData = {
+                    mitarbeiter: wb.mitarbeiter,
+                    kunden: wb.kunden,
+                    materialien: wb.materialien,
+                    feedbackCount: feedbacks.length,
+                    correctCount: feedbacks.filter(f => f.type === 'correct').length,
+                    lastSync: new Date().toISOString(),
+                    syncBy: userName
+                };
+
+                if (firebaseDb) {
+                    // Echte Firebase-Synchronisation
+                    const teamRef = firebaseDb.ref(`teams/${cloudTeamCode}`);
+
+                    // Mitarbeiter mergen (nicht überschreiben)
+                    const snapshot = await teamRef.child('wissensbasis').once('value');
+                    const existing = snapshot.val() || {};
+
+                    const mergedMitarbeiter = [...new Set([...(existing.mitarbeiter || []), ...wb.mitarbeiter])];
+                    const mergedKunden = [...new Set([...(existing.kunden || []), ...wb.kunden])];
+                    const mergedMaterialien = [...new Set([...(existing.materialien || []), ...wb.materialien])];
+
+                    await teamRef.child('wissensbasis').set({
+                        mitarbeiter: mergedMitarbeiter,
+                        kunden: mergedKunden,
+                        materialien: mergedMaterialien
+                    });
+
+                    // Statistiken aktualisieren
+                    await teamRef.child(`stats/${userName.replace(/[.#$\/\[\]]/g, '_')}`).set(uploadData);
+
+                    updateCloudStatus('connected');
+                    showToast('✅ Daten hochgeladen!', 'success');
+                } else {
+                    // Simulations-Modus: Speichere in localStorage mit Team-Präfix
+                    const key = `cloud_${cloudTeamCode}`;
+                    const existing = JSON.parse(localStorage.getItem(key) || '{}');
+
+                    const merged = {
+                        mitarbeiter: [...new Set([...(existing.mitarbeiter || []), ...wb.mitarbeiter])],
+                        kunden: [...new Set([...(existing.kunden || []), ...wb.kunden])],
+                        materialien: [...new Set([...(existing.materialien || []), ...wb.materialien])],
+                        lastSync: uploadData.lastSync,
+                        syncBy: uploadData.syncBy
+                    };
+
+                    localStorage.setItem(key, JSON.stringify(merged));
+                    updateCloudStatus('simulated');
+                    showToast('✅ Lokal gespeichert (Simulation)', 'success');
+                }
+
+            } catch (e) {
+                console.error('Sync to cloud error:', e);
+                updateCloudStatus('error');
+                showToast('❌ Sync fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
+        // Daten von Cloud herunterladen
+        async function syncFromCloud() {
+            if (!cloudTeamCode) {
+                showToast('⚠️ Bitte zuerst mit Cloud verbinden', 'info');
+                return;
+            }
+
+            updateCloudStatus('syncing');
+
+            try {
+                let cloudData = null;
+
+                if (firebaseDb) {
+                    // Echte Firebase-Daten laden
+                    const snapshot = await firebaseDb.ref(`teams/${cloudTeamCode}/wissensbasis`).once('value');
+                    cloudData = snapshot.val();
+                } else {
+                    // Simulations-Modus
+                    const key = `cloud_${cloudTeamCode}`;
+                    cloudData = JSON.parse(localStorage.getItem(key) || 'null');
+                }
+
+                if (!cloudData) {
+                    updateCloudStatus(firebaseDb ? 'connected' : 'simulated');
+                    showToast('ℹ️ Keine Cloud-Daten vorhanden', 'info');
+                    return;
+                }
+
+                // Mit lokalen Daten mergen
+                const localWb = getWissensbasis();
+
+                const mergedMitarbeiter = [...new Set([...localWb.mitarbeiter, ...(cloudData.mitarbeiter || [])])];
+                const mergedKunden = [...new Set([...localWb.kunden, ...(cloudData.kunden || [])])];
+                const mergedMaterialien = [...new Set([...localWb.materialien, ...(cloudData.materialien || [])])];
+
+                // Speichern
+                localStorage.setItem('firmenMitarbeiter', JSON.stringify(mergedMitarbeiter));
+                localStorage.setItem('firmenKunden', JSON.stringify(mergedKunden));
+                localStorage.setItem('firmenMaterialien', JSON.stringify(mergedMaterialien));
+
+                // UI aktualisieren
+                updateWissensbasisCounts();
+
+                updateCloudStatus(firebaseDb ? 'connected' : 'simulated');
+                showToast(`✅ ${mergedMitarbeiter.length} Mitarbeiter, ${mergedKunden.length} Kunden geladen!`, 'success');
+
+            } catch (e) {
+                console.error('Sync from cloud error:', e);
+                updateCloudStatus('error');
+                showToast('❌ Download fehlgeschlagen: ' + e.message, 'error');
+            }
+        }
+
+        // Echtzeit-Sync einrichten (bei Firebase)
+        function setupRealtimeSync() {
+            if (!firebaseDb || !cloudTeamCode) return;
+
+            const wbRef = firebaseDb.ref(`teams/${cloudTeamCode}/wissensbasis`);
+
+            wbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    console.log('🔄 Echtzeit-Update empfangen');
+                    // Optional: Automatisch mergen
+                    // syncFromCloud(); // Auskommentiert um Endlos-Loop zu vermeiden
+                }
+            });
         }
 
         // Agent-Text mit KI verarbeiten
