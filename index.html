@@ -2084,7 +2084,48 @@
                     <span>Abwesenheit</span>
                 </button>
             </div>
-            
+
+            <!-- V3.4: KI-AGENT - Sprich einmal, fülle alles aus -->
+            <div class="agent-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; margin: 15px 0; color: white;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <div style="font-size: 40px;">🤖</div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 18px;">KI-Agent: Sprich einmal, fülle alles aus</h3>
+                        <p style="margin: 5px 0 0; opacity: 0.9; font-size: 13px;">Beschreibe deinen Tag - der Agent füllt alle Felder automatisch</p>
+                    </div>
+                </div>
+
+                <button id="agentButton"
+                        onmousedown="startAgentRecording()"
+                        onmouseup="stopAgentRecording()"
+                        onmouseleave="stopAgentRecording()"
+                        ontouchstart="startAgentRecording()"
+                        ontouchend="stopAgentRecording()"
+                        style="width: 100%; padding: 20px; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.5); border-radius: 12px; color: white; font-size: 16px; cursor: pointer; transition: all 0.3s;">
+                    <div style="font-size: 30px; margin-bottom: 8px;">🎤</div>
+                    <div style="font-weight: bold;">Gedrückt halten & Bericht einsprechen</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">z.B. "Heute bei Müller, 25qm Fliesen verlegt, 3 Mann, 8 Stunden..."</div>
+                </button>
+
+                <div id="agentStatus" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 8px;">
+                    <div id="agentStatusText" style="font-size: 14px;">🎤 Aufnahme läuft...</div>
+                    <div id="agentPreview" style="font-size: 13px; opacity: 0.8; margin-top: 8px; font-style: italic;"></div>
+                </div>
+            </div>
+
+            <!-- FIRMEN-WISSENSBASIS (für Agent Stufe 2) -->
+            <div id="wissensbasisSection" style="background: #f8fafc; border-radius: 12px; padding: 15px; margin: 15px 0; border: 1px solid #e2e8f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0; color: #475569;">📚 Firmen-Wissensbasis</h4>
+                    <button onclick="toggleWissensbasis()" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #667eea;">⚙️ Bearbeiten</button>
+                </div>
+                <div style="font-size: 12px; color: #64748b;">
+                    <span id="wbMitarbeiterCount">0</span> Mitarbeiter •
+                    <span id="wbKundenCount">0</span> Kunden •
+                    <span id="wbBerichteCount">0</span> gelernte Berichte
+                </div>
+            </div>
+
             <!-- V3.0: VORLAGEN -->
             <div class="vorlagen-section">
                 <h4 style="margin: 0 0 10px 0;">📋 Schnellvorlage laden</h4>
@@ -3286,6 +3327,468 @@ Text: ${prompt}`
         function isKIAvailable() {
             return localStorage.getItem('groqApiKey') || localStorage.getItem('geminiApiKey');
         }
+
+        // ===== V3.4: KI-AGENT SYSTEM =====
+
+        // Agent-Variablen
+        let agentRecognition = null;
+        let agentIsRecording = false;
+        let agentFullText = '';
+
+        // Firmen-Wissensbasis laden
+        function getWissensbasis() {
+            return {
+                mitarbeiter: JSON.parse(localStorage.getItem('firmenMitarbeiter') || '[]'),
+                kunden: JSON.parse(localStorage.getItem('firmenKunden') || '[]'),
+                materialien: JSON.parse(localStorage.getItem('firmenMaterialien') || '[]'),
+                gelernteBeispiele: JSON.parse(localStorage.getItem('gelernteBeispiele') || '[]')
+            };
+        }
+
+        // Wissensbasis-Counts aktualisieren
+        function updateWissensbasisCounts() {
+            const wb = getWissensbasis();
+            const mEl = document.getElementById('wbMitarbeiterCount');
+            const kEl = document.getElementById('wbKundenCount');
+            const bEl = document.getElementById('wbBerichteCount');
+            if (mEl) mEl.textContent = wb.mitarbeiter.length;
+            if (kEl) kEl.textContent = wb.kunden.length;
+            if (bEl) bEl.textContent = wb.gelernteBeispiele.length;
+        }
+
+        // Agent-Aufnahme starten
+        function startAgentRecording() {
+            if (!isKIAvailable()) {
+                showToast('⚠️ Bitte erst KI-API-Key einrichten (⚙️ KI Button)', 'error');
+                openKISettings();
+                return;
+            }
+
+            if (agentIsRecording) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('⚠️ Spracheingabe nicht verfügbar', 'error');
+                return;
+            }
+
+            agentIsRecording = true;
+            agentFullText = '';
+
+            const btn = document.getElementById('agentButton');
+            const status = document.getElementById('agentStatus');
+            const statusText = document.getElementById('agentStatusText');
+            const preview = document.getElementById('agentPreview');
+
+            btn.style.background = 'rgba(239, 68, 68, 0.8)';
+            btn.style.borderColor = 'white';
+            status.style.display = 'block';
+            statusText.textContent = '🎤 Aufnahme läuft... Sprich deinen Bericht';
+            preview.textContent = '';
+
+            startAgentSession();
+        }
+
+        // Agent-Session (mit Auto-Neustart)
+        function startAgentSession() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            agentRecognition = new SpeechRecognition();
+
+            agentRecognition.lang = 'de-DE';
+            agentRecognition.continuous = true;
+            agentRecognition.interimResults = true;
+
+            let sessionText = '';
+            let interimText = '';
+
+            agentRecognition.onresult = function(event) {
+                interimText = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        sessionText += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimText += event.results[i][0].transcript;
+                    }
+                }
+
+                const preview = document.getElementById('agentPreview');
+                if (preview) {
+                    preview.textContent = '"' + (agentFullText + sessionText + interimText).trim() + '"';
+                }
+            };
+
+            agentRecognition.onend = function() {
+                agentFullText += sessionText;
+
+                if (agentIsRecording) {
+                    // Auto-Neustart
+                    setTimeout(() => {
+                        if (agentIsRecording) {
+                            startAgentSession();
+                        }
+                    }, 100);
+                }
+            };
+
+            agentRecognition.onerror = function(event) {
+                if (event.error === 'aborted' || event.error === 'no-speech') {
+                    if (agentIsRecording) {
+                        agentFullText += sessionText;
+                        setTimeout(() => {
+                            if (agentIsRecording) startAgentSession();
+                        }, 100);
+                    }
+                    return;
+                }
+                console.error('Agent Speech Error:', event.error);
+            };
+
+            try {
+                agentRecognition.start();
+            } catch (e) {
+                console.error('Agent start error:', e);
+            }
+        }
+
+        // Agent-Aufnahme stoppen und verarbeiten
+        async function stopAgentRecording() {
+            if (!agentIsRecording) return;
+
+            agentIsRecording = false;
+
+            if (agentRecognition) {
+                try {
+                    agentRecognition.stop();
+                } catch (e) {}
+                agentRecognition = null;
+            }
+
+            const btn = document.getElementById('agentButton');
+            const status = document.getElementById('agentStatus');
+            const statusText = document.getElementById('agentStatusText');
+
+            btn.style.background = 'rgba(255,255,255,0.2)';
+            btn.style.borderColor = 'rgba(255,255,255,0.5)';
+
+            const text = agentFullText.trim();
+
+            if (!text || text.length < 10) {
+                status.style.display = 'none';
+                showToast('⚠️ Bitte länger sprechen', 'info');
+                return;
+            }
+
+            statusText.textContent = '🤖 Agent analysiert deinen Bericht...';
+            showToast('🤖 Agent verarbeitet...', 'info');
+
+            try {
+                const result = await processAgentText(text);
+                if (result) {
+                    fillFormFromAgent(result);
+                    statusText.textContent = '✅ Bericht wurde ausgefüllt!';
+                    showToast('✅ Agent hat alle Felder ausgefüllt!', 'success');
+
+                    // Aus dem Bericht lernen
+                    saveToWissensbasis(text, result);
+
+                    setTimeout(() => {
+                        status.style.display = 'none';
+                    }, 3000);
+                }
+            } catch (e) {
+                console.error('Agent error:', e);
+                statusText.textContent = '❌ Fehler bei der Verarbeitung';
+                showToast('❌ Agent-Fehler: ' + e.message, 'error');
+            }
+        }
+
+        // Agent-Text mit KI verarbeiten
+        async function processAgentText(text) {
+            const wb = getWissensbasis();
+
+            const systemPrompt = `Du bist ein KI-Agent für Fliesenleger-Baustellenberichte.
+Analysiere den gesprochenen Text und extrahiere ALLE relevanten Informationen.
+
+FIRMEN-WISSENSBASIS:
+- Bekannte Mitarbeiter: ${wb.mitarbeiter.join(', ') || 'keine'}
+- Bekannte Kunden/Baustellen: ${wb.kunden.join(', ') || 'keine'}
+- Häufige Materialien: ${wb.materialien.join(', ') || 'Standard-Fliesenmaterial'}
+
+Antworte NUR mit einem JSON-Objekt in diesem Format (keine anderen Texte!):
+{
+  "projektnummer": "P-2024-XXX oder null",
+  "baustelle": "Name und Ort der Baustelle",
+  "taetigkeiten": [
+    {"position": "1", "menge": 25, "einheit": "m²", "beschreibung": "Bodenfliesen 60x60 verlegt"}
+  ],
+  "material": "Liste der verwendeten Materialien",
+  "maschinen": "Verwendete Maschinen/Werkzeuge oder leer",
+  "personal": [
+    {"name": "Mitarbeiter 1", "stunden": 8}
+  ],
+  "gesamtStunden": 24,
+  "notizen": "Zusätzliche Infos, nächste Schritte etc."
+}
+
+Wichtig:
+- Erkenne Mengenangaben (qm, m², Stück, lfm)
+- Erkenne Zeitangaben (Stunden, h)
+- Erkenne Personenanzahl und Namen
+- Verwende Fachbegriffe korrekt
+- Bei fehlenden Infos: null oder leeren String verwenden`;
+
+            const groqKey = localStorage.getItem('groqApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+
+            // Versuche Groq
+            if (groqKey) {
+                try {
+                    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${groqKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: 'llama-3.1-70b-versatile',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: `Analysiere diesen Baustellenbericht:\n\n"${text}"` }
+                            ],
+                            max_tokens: 1000,
+                            temperature: 0.2
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const content = data.choices[0]?.message?.content;
+                        return parseAgentResponse(content);
+                    }
+                } catch (e) {
+                    console.log('Groq Agent failed:', e);
+                }
+            }
+
+            // Fallback Gemini
+            if (geminiKey) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{
+                                    text: systemPrompt + `\n\nAnalysiere diesen Baustellenbericht:\n\n"${text}"`
+                                }]
+                            }],
+                            generationConfig: { maxOutputTokens: 1000, temperature: 0.2 }
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                        return parseAgentResponse(content);
+                    }
+                } catch (e) {
+                    console.log('Gemini Agent failed:', e);
+                }
+            }
+
+            throw new Error('Keine KI verfügbar');
+        }
+
+        // Agent-Antwort parsen
+        function parseAgentResponse(content) {
+            if (!content) return null;
+
+            // JSON aus der Antwort extrahieren
+            const jsonMatch = content.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) {
+                console.error('Kein JSON in Antwort:', content);
+                return null;
+            }
+
+            try {
+                return JSON.parse(jsonMatch[0]);
+            } catch (e) {
+                console.error('JSON Parse Error:', e, content);
+                return null;
+            }
+        }
+
+        // Formular mit Agent-Daten füllen
+        function fillFormFromAgent(data) {
+            console.log('🤖 Agent füllt Formular:', data);
+
+            // Projektnummer
+            if (data.projektnummer) {
+                const projEl = document.getElementById('projektnummerHelper');
+                if (projEl) projEl.value = data.projektnummer;
+                const projEl2 = document.getElementById('projektnummer');
+                if (projEl2) projEl2.value = data.projektnummer;
+            }
+
+            // Baustelle
+            if (data.baustelle) {
+                const bauEl = document.getElementById('baustelleHelper');
+                if (bauEl) bauEl.value = data.baustelle;
+                const bauEl2 = document.getElementById('baustelle');
+                if (bauEl2) bauEl2.value = data.baustelle;
+            }
+
+            // Tätigkeiten
+            if (data.taetigkeiten && Array.isArray(data.taetigkeiten)) {
+                const tbody = document.getElementById('taetigkeitenTable');
+                if (tbody) {
+                    // Bestehende Zeilen löschen
+                    tbody.innerHTML = '';
+
+                    data.taetigkeiten.forEach((t, i) => {
+                        const row = tbody.insertRow();
+                        const today = new Date().toLocaleDateString('de-DE');
+                        row.innerHTML = `
+                            <td>${t.position || (i + 1)}</td>
+                            <td>${today}</td>
+                            <td><textarea style="width:100%;min-height:60px;border:1px solid #ddd;border-radius:4px;padding:8px;">${t.beschreibung || ''}</textarea></td>
+                            <td contenteditable="true">${t.menge ? t.menge + ' ' + (t.einheit || '') : ''}</td>
+                            <td contenteditable="true"></td>
+                        `;
+                    });
+                }
+            }
+
+            // Material
+            if (data.material) {
+                const matEl = document.getElementById('materialText');
+                if (matEl) matEl.value = data.material;
+            }
+
+            // Maschinen
+            if (data.maschinen) {
+                const maschEl = document.getElementById('maschinenText');
+                if (maschEl) maschEl.value = data.maschinen;
+            }
+
+            // Personal
+            if (data.personal && Array.isArray(data.personal)) {
+                // Personal-Liste aktualisieren
+                personalListe = data.personal.map(p => ({
+                    name: p.name || 'Mitarbeiter',
+                    anzahl: 1,
+                    stunden: p.stunden || 8
+                }));
+                updatePersonalDisplay();
+            }
+
+            // Notizen in ein Textfeld oder als Toast
+            if (data.notizen) {
+                showToast('📝 Notiz: ' + data.notizen, 'info');
+            }
+
+            // Scroll zum Formular
+            document.getElementById('tab-neu')?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // In Wissensbasis speichern (Lernen)
+        function saveToWissensbasis(originalText, parsedData) {
+            const wb = getWissensbasis();
+
+            // Neue Mitarbeiter lernen
+            if (parsedData.personal) {
+                parsedData.personal.forEach(p => {
+                    if (p.name && !wb.mitarbeiter.includes(p.name)) {
+                        wb.mitarbeiter.push(p.name);
+                    }
+                });
+            }
+
+            // Neue Kunden/Baustellen lernen
+            if (parsedData.baustelle && !wb.kunden.includes(parsedData.baustelle)) {
+                wb.kunden.push(parsedData.baustelle);
+            }
+
+            // Beispiel speichern (max. 20)
+            wb.gelernteBeispiele.push({
+                input: originalText.substring(0, 200),
+                output: parsedData,
+                timestamp: new Date().toISOString()
+            });
+            if (wb.gelernteBeispiele.length > 20) {
+                wb.gelernteBeispiele.shift();
+            }
+
+            // Speichern
+            localStorage.setItem('firmenMitarbeiter', JSON.stringify(wb.mitarbeiter));
+            localStorage.setItem('firmenKunden', JSON.stringify(wb.kunden));
+            localStorage.setItem('gelernteBeispiele', JSON.stringify(wb.gelernteBeispiele));
+
+            updateWissensbasisCounts();
+            console.log('📚 Wissensbasis aktualisiert:', wb);
+        }
+
+        // Wissensbasis-Editor öffnen
+        function toggleWissensbasis() {
+            const wb = getWissensbasis();
+
+            const modal = document.createElement('div');
+            modal.id = 'wissensbasisModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10004;display:flex;align-items:center;justify-content:center;padding:15px;';
+
+            modal.innerHTML = `
+                <div style="background:white;border-radius:16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;">
+                    <div style="padding:16px 20px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:16px 16px 0 0;">
+                        <h3 style="margin:0;color:white;">📚 Firmen-Wissensbasis</h3>
+                        <p style="margin:5px 0 0;color:rgba(255,255,255,0.8);font-size:12px;">Der Agent lernt aus diesen Daten</p>
+                    </div>
+                    <div style="padding:20px;">
+                        <div style="margin-bottom:20px;">
+                            <label style="font-weight:bold;display:block;margin-bottom:8px;">👷 Mitarbeiter (einer pro Zeile)</label>
+                            <textarea id="wbMitarbeiterEdit" rows="4" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">${wb.mitarbeiter.join('\n')}</textarea>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label style="font-weight:bold;display:block;margin-bottom:8px;">🏢 Kunden/Baustellen (eine pro Zeile)</label>
+                            <textarea id="wbKundenEdit" rows="4" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">${wb.kunden.join('\n')}</textarea>
+                        </div>
+                        <div style="margin-bottom:20px;">
+                            <label style="font-weight:bold;display:block;margin-bottom:8px;">🧱 Häufige Materialien (eines pro Zeile)</label>
+                            <textarea id="wbMaterialienEdit" rows="3" style="width:100%;padding:10px;border:1px solid #e2e8f0;border-radius:8px;">${wb.materialien.join('\n')}</textarea>
+                        </div>
+                        <div style="background:#f1f5f9;padding:12px;border-radius:8px;font-size:12px;color:#64748b;">
+                            📊 ${wb.gelernteBeispiele.length} Berichte gelernt
+                            <button onclick="if(confirm('Alle gelernten Beispiele löschen?')){localStorage.removeItem('gelernteBeispiele');showToast('Gelöscht','success');}" style="margin-left:10px;font-size:11px;color:#ef4444;background:none;border:none;cursor:pointer;">🗑️ Zurücksetzen</button>
+                        </div>
+                    </div>
+                    <div style="padding:12px 20px 20px;display:flex;gap:10px;">
+                        <button onclick="document.getElementById('wissensbasisModal').remove()" style="flex:1;padding:12px;background:#e5e7eb;color:#475569;border:none;border-radius:8px;cursor:pointer;">Abbrechen</button>
+                        <button onclick="saveWissensbasisEdit()" style="flex:1;padding:12px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">💾 Speichern</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+        }
+
+        // Wissensbasis speichern
+        function saveWissensbasisEdit() {
+            const mitarbeiter = document.getElementById('wbMitarbeiterEdit').value.split('\n').map(s => s.trim()).filter(s => s);
+            const kunden = document.getElementById('wbKundenEdit').value.split('\n').map(s => s.trim()).filter(s => s);
+            const materialien = document.getElementById('wbMaterialienEdit').value.split('\n').map(s => s.trim()).filter(s => s);
+
+            localStorage.setItem('firmenMitarbeiter', JSON.stringify(mitarbeiter));
+            localStorage.setItem('firmenKunden', JSON.stringify(kunden));
+            localStorage.setItem('firmenMaterialien', JSON.stringify(materialien));
+
+            updateWissensbasisCounts();
+            document.getElementById('wissensbasisModal')?.remove();
+            showToast('✅ Wissensbasis gespeichert', 'success');
+        }
+
+        // Beim Laden: Wissensbasis-Counts aktualisieren
+        document.addEventListener('DOMContentLoaded', function() {
+            updateWissensbasisCounts();
+        });
 
         // ===== WETTER FUNKTIONEN (aus Script 2 hierher verschoben) =====
         function updateWetterUI(ort, temp, desc, icon = '🌤️') {
