@@ -2326,7 +2326,7 @@
                         <span id="cloudStatusIcon">⚪</span>
                         <span id="cloudStatusText">Nicht verbunden</span>
                     </div>
-                    <div id="cloudSyncButtons" style="display: none; margin-top: 8px; display: flex; gap: 6px;">
+                    <div id="cloudSyncButtons" style="display: none; margin-top: 8px; gap: 6px;">
                         <button onclick="syncToCloud()" style="flex: 1; padding: 6px; background: #667eea; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
                             ⬆️ Hochladen
                         </button>
@@ -3371,7 +3371,7 @@
             const modal = document.getElementById('kiSettingsModal');
             modal.style.display = 'flex';
             loadKISettings();
-            updateKIStatus();
+            updateKISettingsStatus();
         }
 
         function closeKISettings() {
@@ -3389,7 +3389,8 @@
             if (geminiKey) localStorage.setItem('geminiApiKey', geminiKey);
             else localStorage.removeItem('geminiApiKey');
 
-            updateKIStatus();
+            updateKISettingsStatus();
+            checkKIStatus(); // Update auch den Status-Badge
             showToast('✅ KI-Einstellungen gespeichert', 'success');
         }
 
@@ -3401,7 +3402,7 @@
             document.getElementById('geminiApiKey').value = geminiKey;
         }
 
-        function updateKIStatus() {
+        function updateKISettingsStatus() {
             const groqKey = localStorage.getItem('groqApiKey');
             const geminiKey = localStorage.getItem('geminiApiKey');
             const statusEl = document.getElementById('kiStatus');
@@ -3874,8 +3875,11 @@ Text: ${prompt}`
 
         // Aus Korrektur lernen
         function learnFromCorrection(input, aiResult, correctedResult, errorTypes) {
+            // Validierung
+            if (!correctedResult) return;
+
             // Wenn Namen falsch waren, versuche korrigierte Namen zu extrahieren
-            if (errorTypes.includes('namen') && correctedResult.baustelle) {
+            if (errorTypes && errorTypes.includes('namen') && correctedResult.baustelle) {
                 // Extrahiere mögliche Kundennamen aus korrigierter Baustelle
                 const wb = getWissensbasis();
                 const baustelleName = correctedResult.baustelle.split(/[,\s-]/)[0].trim();
@@ -3966,9 +3970,12 @@ Text: ${prompt}`
             const corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
             if (corrections.length === 0) return '';
 
-            // Die letzten 3 Korrekturen als Beispiele
+            // Die letzten 3 Korrekturen als Beispiele (mit null-checks)
             const examples = corrections.slice(-3).map(c => {
-                return `Eingabe: "${c.input.substring(0, 100)}..."\nKorrektes Ergebnis: Baustelle="${c.correct.baustelle}", Projekt="${c.correct.projektnummer}"`;
+                const baustelle = c.correct?.baustelle || 'unbekannt';
+                const projektnummer = c.correct?.projektnummer || 'unbekannt';
+                const inputText = c.input ? c.input.substring(0, 100) : '';
+                return `Eingabe: "${inputText}..."\nKorrektes Ergebnis: Baustelle="${baustelle}", Projekt="${projektnummer}"`;
             }).join('\n\n');
 
             return `\n\nBEISPIELE AUS FRÜHEREN KORREKTUREN:\n${examples}`;
@@ -4290,10 +4297,14 @@ Text: ${prompt}`
                 circleEl.style.background = `conic-gradient(${color} ${accuracy}%, #e2e8f0 ${accuracy}%)`;
             }
 
-            // Zahlen
-            document.getElementById('dashAccuracyPercent').textContent = total > 0 ? accuracy + '%' : '--%';
-            document.getElementById('dashCorrectCount').textContent = correct;
-            document.getElementById('dashCorrectedCount').textContent = corrected;
+            // Zahlen (mit null-checks)
+            const dashAccuracyPercentEl = document.getElementById('dashAccuracyPercent');
+            const dashCorrectCountEl = document.getElementById('dashCorrectCount');
+            const dashCorrectedCountEl = document.getElementById('dashCorrectedCount');
+
+            if (dashAccuracyPercentEl) dashAccuracyPercentEl.textContent = total > 0 ? accuracy + '%' : '--%';
+            if (dashCorrectCountEl) dashCorrectCountEl.textContent = correct;
+            if (dashCorrectedCountEl) dashCorrectedCountEl.textContent = corrected;
 
             // Fehlertypen
             const errorCounts = {};
@@ -4306,54 +4317,62 @@ Text: ${prompt}`
             const errorTypesEl = document.getElementById('dashErrorTypes');
             const sortedErrors = Object.entries(errorCounts).sort((a, b) => b[1] - a[1]);
 
-            if (sortedErrors.length === 0) {
-                errorTypesEl.innerHTML = '<div style="color:#94a3b8; font-size:13px;">Keine Fehler erfasst - super! 🎉</div>';
-            } else {
-                const maxCount = sortedErrors[0][1];
-                errorTypesEl.innerHTML = sortedErrors.slice(0, 5).map(([type, count]) => {
-                    const percent = Math.round((count / maxCount) * 100);
-                    const labels = {
-                        'namen': '👤 Namen',
-                        'mengen': '📏 Mengen',
-                        'baustelle': '🏗️ Baustelle',
-                        'stunden': '⏰ Stunden',
-                        'sonstiges': '❓ Sonstiges'
-                    };
-                    return `<div style="display:flex; align-items:center; gap:10px;">
-                        <span style="width:80px; font-size:12px;">${labels[type] || type}</span>
-                        <div style="flex:1; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
-                            <div style="background:#f59e0b; height:100%; width:${percent}%;"></div>
-                        </div>
-                        <span style="font-size:12px; color:#64748b;">${count}x</span>
-                    </div>`;
-                }).join('');
+            if (errorTypesEl) {
+                if (sortedErrors.length === 0) {
+                    errorTypesEl.innerHTML = '<div style="color:#94a3b8; font-size:13px;">Keine Fehler erfasst - super! 🎉</div>';
+                } else {
+                    const maxCount = sortedErrors[0][1];
+                    errorTypesEl.innerHTML = sortedErrors.slice(0, 5).map(([type, count]) => {
+                        const percent = Math.round((count / maxCount) * 100);
+                        const labels = {
+                            'namen': '👤 Namen',
+                            'mengen': '📏 Mengen',
+                            'baustelle': '🏗️ Baustelle',
+                            'stunden': '⏰ Stunden',
+                            'sonstiges': '❓ Sonstiges'
+                        };
+                        return `<div style="display:flex; align-items:center; gap:10px;">
+                            <span style="width:80px; font-size:12px;">${labels[type] || type}</span>
+                            <div style="flex:1; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+                                <div style="background:#f59e0b; height:100%; width:${percent}%;"></div>
+                            </div>
+                            <span style="font-size:12px; color:#64748b;">${count}x</span>
+                        </div>`;
+                    }).join('');
+                }
             }
 
-            // Wissensbasis
-            document.getElementById('dashMitarbeiter').textContent = wb.mitarbeiter.length;
-            document.getElementById('dashKunden').textContent = wb.kunden.length;
-            document.getElementById('dashBeispiele').textContent = corrections.length;
+            // Wissensbasis (mit null-checks)
+            const dashMitarbeiterEl = document.getElementById('dashMitarbeiter');
+            const dashKundenEl = document.getElementById('dashKunden');
+            const dashBeispieleEl = document.getElementById('dashBeispiele');
 
-            // Timeline
+            if (dashMitarbeiterEl) dashMitarbeiterEl.textContent = wb.mitarbeiter.length;
+            if (dashKundenEl) dashKundenEl.textContent = wb.kunden.length;
+            if (dashBeispieleEl) dashBeispieleEl.textContent = corrections.length;
+
+            // Timeline (mit null-check)
             const timelineEl = document.getElementById('dashTimeline');
             const recentFeedbacks = feedbacks.slice(-10).reverse();
 
-            if (recentFeedbacks.length === 0) {
-                timelineEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:20px;">Noch keine Aktivitäten</div>';
-            } else {
-                timelineEl.innerHTML = recentFeedbacks.map(f => {
-                    const date = new Date(f.timestamp);
-                    const timeStr = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                    const icon = f.type === 'correct' ? '✅' : '✏️';
-                    const text = f.type === 'correct' ? 'Korrekt erkannt' : `Korrigiert (${f.errors?.join(', ') || 'unbekannt'})`;
-                    return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
-                        <span style="font-size:16px;">${icon}</span>
-                        <div style="flex:1;">
-                            <div style="font-size:12px;">${text}</div>
-                            <div style="font-size:10px; color:#94a3b8;">${timeStr}</div>
-                        </div>
-                    </div>`;
-                }).join('');
+            if (timelineEl) {
+                if (recentFeedbacks.length === 0) {
+                    timelineEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:20px;">Noch keine Aktivitäten</div>';
+                } else {
+                    timelineEl.innerHTML = recentFeedbacks.map(f => {
+                        const date = new Date(f.timestamp);
+                        const timeStr = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                        const icon = f.type === 'correct' ? '✅' : '✏️';
+                        const text = f.type === 'correct' ? 'Korrekt erkannt' : `Korrigiert (${f.errors?.join(', ') || 'unbekannt'})`;
+                        return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                            <span style="font-size:16px;">${icon}</span>
+                            <div style="flex:1;">
+                                <div style="font-size:12px;">${text}</div>
+                                <div style="font-size:10px; color:#94a3b8;">${timeStr}</div>
+                            </div>
+                        </div>`;
+                    }).join('');
+                }
             }
 
             // Trend-Chart (letzte 7 Tage)
@@ -4380,32 +4399,36 @@ Text: ${prompt}`
 
             const maxTotal = Math.max(...days.map(d => d.total), 1);
 
-            trendChartEl.innerHTML = days.map((d, i) => {
-                const height = d.total > 0 ? Math.max(20, (d.total / maxTotal) * 80) : 10;
-                const color = d.accuracy === null ? '#e2e8f0' :
-                              d.accuracy >= 80 ? '#10b981' :
-                              d.accuracy >= 60 ? '#f59e0b' : '#ef4444';
-                const dayName = new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short' });
+            if (trendChartEl) {
+                trendChartEl.innerHTML = days.map((d, i) => {
+                    const height = d.total > 0 ? Math.max(20, (d.total / maxTotal) * 80) : 10;
+                    const color = d.accuracy === null ? '#e2e8f0' :
+                                  d.accuracy >= 80 ? '#10b981' :
+                                  d.accuracy >= 60 ? '#f59e0b' : '#ef4444';
+                    const dayName = new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short' });
 
-                return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
-                    <div style="width:100%; background:${color}; height:${height}px; border-radius:4px;" title="${d.total} Berichte, ${d.accuracy !== null ? d.accuracy + '% korrekt' : 'keine Daten'}"></div>
-                    <span style="font-size:9px; color:#94a3b8;">${dayName}</span>
-                </div>`;
-            }).join('');
+                    return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                        <div style="width:100%; background:${color}; height:${height}px; border-radius:4px;" title="${d.total} Berichte, ${d.accuracy !== null ? d.accuracy + '% korrekt' : 'keine Daten'}"></div>
+                        <span style="font-size:9px; color:#94a3b8;">${dayName}</span>
+                    </div>`;
+                }).join('');
+            }
 
-            // Cloud-Status
+            // Cloud-Status (mit null-checks)
             const cloudIcon = document.getElementById('dashCloudIcon');
             const cloudText = document.getElementById('dashCloudText');
             const cloudDetails = document.getElementById('dashCloudDetails');
 
-            if (cloudTeamCode) {
-                cloudIcon.textContent = firebaseDb ? '🟢' : '🟡';
-                cloudText.textContent = firebaseDb ? 'Mit Team verbunden' : 'Lokaler Sync-Modus';
-                cloudDetails.textContent = `Team: ${cloudTeamCode}`;
-            } else {
-                cloudIcon.textContent = '⚪';
-                cloudText.textContent = 'Nicht verbunden';
-                cloudDetails.textContent = 'Team-Code eingeben um zu verbinden';
+            if (cloudIcon && cloudText && cloudDetails) {
+                if (cloudTeamCode) {
+                    cloudIcon.textContent = firebaseDb ? '🟢' : '🟡';
+                    cloudText.textContent = firebaseDb ? 'Mit Team verbunden' : 'Lokaler Sync-Modus';
+                    cloudDetails.textContent = `Team: ${cloudTeamCode}`;
+                } else {
+                    cloudIcon.textContent = '⚪';
+                    cloudText.textContent = 'Nicht verbunden';
+                    cloudDetails.textContent = 'Team-Code eingeben um zu verbinden';
+                }
             }
         }
 
