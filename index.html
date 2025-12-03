@@ -2111,6 +2111,24 @@
                     <div id="agentStatusText" style="font-size: 14px;">🎤 Aufnahme läuft...</div>
                     <div id="agentPreview" style="font-size: 13px; opacity: 0.8; margin-top: 8px; font-style: italic;"></div>
                 </div>
+
+                <!-- FOTO-UPLOAD IM AGENT-BEREICH -->
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
+                    <input type="file" id="agentPhotoInput" accept="image/*" capture="environment" multiple style="display: none;" onchange="handleAgentPhotos(event)">
+                    <button onclick="document.getElementById('agentPhotoInput').click()"
+                            style="width: 100%; padding: 12px; background: rgba(255,255,255,0.2); border: none; border-radius: 8px; color: white; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 20px;">📷</span>
+                        <span>Baustellenfotos hinzufügen</span>
+                        <span id="agentPhotoCount" style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; font-size: 12px;">0</span>
+                    </button>
+                    <div id="agentPhotoPreview" style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;"></div>
+                </div>
+            </div>
+
+            <!-- KI-STATUS ANZEIGE -->
+            <div id="kiStatusBadge" style="background: #f8fafc; border-radius: 8px; padding: 10px 15px; margin: 10px 0; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px;">
+                <span id="kiStatusIcon">🤖</span>
+                <span id="kiStatusText" style="font-size: 12px; color: #64748b;">KI wird initialisiert...</span>
             </div>
 
             <!-- FIRMEN-WISSENSBASIS (für Agent Stufe 2) -->
@@ -3068,6 +3086,10 @@
             // Auto-GPS beim Laden (IP-basiert als Fallback)
             autoLoadLocation();
             updateRapportNummer();
+            // KI-Status prüfen und anzeigen
+            checkKIStatus();
+            // Wissensbasis-Zähler aktualisieren
+            updateWissensbasisCounts();
             
             const today = new Date();
             document.getElementById('datum').valueAsDate = today;
@@ -3596,7 +3618,167 @@ Wichtig:
                 }
             }
 
-            throw new Error('Keine KI verfügbar');
+            // Fallback 3: Kostenlose KI (keine API-Key nötig!)
+            console.log('🆓 Versuche kostenlose KI...');
+            try {
+                const result = await callFreeAI(systemPrompt, `Analysiere diesen Baustellenbericht:\n\n"${text}"`);
+                if (result) {
+                    updateKIStatus('free', true);
+                    return result;
+                }
+            } catch (e) {
+                console.log('Free AI failed:', e);
+            }
+
+            // Fallback 4: Einfache Textanalyse ohne KI
+            console.log('📝 Verwende einfache Textanalyse...');
+            updateKIStatus('basic', true);
+            return simpleTextParsing(text);
+        }
+
+        // Kostenlose KI API (keine API-Key nötig)
+        async function callFreeAI(systemPrompt, userPrompt) {
+            // Versuche mehrere kostenlose Endpoints
+            const freeEndpoints = [
+                {
+                    name: 'Pollinations',
+                    url: 'https://text.pollinations.ai/',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        model: 'openai',
+                        jsonMode: true
+                    }),
+                    parseResponse: async (res) => {
+                        const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                },
+                {
+                    name: 'Pollinations-GET',
+                    url: `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\n' + userPrompt)}?model=openai&json=true`,
+                    method: 'GET',
+                    parseResponse: async (res) => {
+                        const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                }
+            ];
+
+            for (const endpoint of freeEndpoints) {
+                try {
+                    console.log(`🔄 Versuche ${endpoint.name}...`);
+                    const fetchOptions = {
+                        method: endpoint.method,
+                        headers: endpoint.headers
+                    };
+                    if (endpoint.body) fetchOptions.body = endpoint.body;
+
+                    const response = await fetch(endpoint.url, fetchOptions);
+
+                    if (response.ok) {
+                        const result = await endpoint.parseResponse(response);
+                        if (result) {
+                            console.log(`✅ ${endpoint.name} erfolgreich!`);
+                            return result;
+                        }
+                    }
+                } catch (e) {
+                    console.log(`❌ ${endpoint.name} fehlgeschlagen:`, e.message);
+                }
+            }
+
+            return null;
+        }
+
+        // Einfache Textanalyse als letzter Fallback (ohne KI)
+        function simpleTextParsing(text) {
+            const result = {
+                projektnummer: null,
+                baustelle: null,
+                taetigkeiten: [],
+                material: '',
+                maschinen: '',
+                personal: [],
+                gesamtStunden: 0,
+                notizen: text
+            };
+
+            // Baustelle/Kunde erkennen
+            const baustelleMatch = text.match(/(?:bei|baustelle|kunde|projekt|objekt)[:\s]+([A-Za-zäöüÄÖÜß\s]+?)(?:,|\.|in|$)/i);
+            if (baustelleMatch) result.baustelle = baustelleMatch[1].trim();
+
+            // Quadratmeter erkennen
+            const qmMatches = text.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:qm|m²|quadratmeter)/gi);
+            for (const match of qmMatches) {
+                result.taetigkeiten.push({
+                    position: String(result.taetigkeiten.length + 1),
+                    menge: parseFloat(match[1].replace(',', '.')),
+                    einheit: 'm²',
+                    beschreibung: 'Fliesen verlegt'
+                });
+            }
+
+            // Stunden erkennen
+            const stundenMatch = text.match(/(\d+(?:[.,]\d+)?)\s*(?:stunden?|h)\b/i);
+            if (stundenMatch) result.gesamtStunden = parseFloat(stundenMatch[1].replace(',', '.'));
+
+            // Personenanzahl erkennen
+            const personMatch = text.match(/(\d+)\s*(?:mann|person|leute|arbeiter|mitarbeiter)/i);
+            if (personMatch) {
+                const anzahl = parseInt(personMatch[1]);
+                for (let i = 0; i < anzahl; i++) {
+                    result.personal.push({
+                        name: `Mitarbeiter ${i + 1}`,
+                        stunden: result.gesamtStunden / anzahl || 8
+                    });
+                }
+            }
+
+            // Projektnummer erkennen
+            const projMatch = text.match(/(?:projekt|p)[\s-]*(\d{4}[\s-]?\d{3})/i);
+            if (projMatch) result.projektnummer = 'P-' + projMatch[1].replace(/\s/g, '-');
+
+            return result;
+        }
+
+        // KI-Status UI aktualisieren
+        function updateKIStatus(type, available) {
+            const icon = document.getElementById('kiStatusIcon');
+            const text = document.getElementById('kiStatusText');
+
+            if (!icon || !text) return;
+
+            const statuses = {
+                'groq': { icon: '🚀', text: 'Groq KI (schnell & intelligent)', color: '#10b981' },
+                'gemini': { icon: '✨', text: 'Google Gemini KI', color: '#667eea' },
+                'free': { icon: '🆓', text: 'Kostenlose KI (ohne API-Key)', color: '#f59e0b' },
+                'basic': { icon: '📝', text: 'Einfache Textanalyse (offline)', color: '#6b7280' },
+                'none': { icon: '❌', text: 'Keine KI verfügbar', color: '#ef4444' }
+            };
+
+            const status = statuses[type] || statuses['none'];
+            icon.textContent = status.icon;
+            text.textContent = status.text;
+            text.style.color = status.color;
+        }
+
+        // KI-Status beim Laden prüfen
+        function checkKIStatus() {
+            const groqKey = localStorage.getItem('groqApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+
+            if (groqKey) {
+                updateKIStatus('groq', true);
+            } else if (geminiKey) {
+                updateKIStatus('gemini', true);
+            } else {
+                updateKIStatus('free', true);
+            }
         }
 
         // Agent-Antwort parsen
@@ -4782,17 +4964,71 @@ Wichtig:
         // ===== PHOTOS =====
         function handlePhotos(event) {
             const files = Array.from(event.target.files);
-            
+
             files.forEach(file => {
                 if (file.type.startsWith('image/')) {
                     compressImage(file, function(compressedDataUrl) {
                         photos.push(compressedDataUrl);
                         updatePhotoGrid();
+                        updateAgentPhotoPreview();
                     });
                 }
             });
-            
+
             event.target.value = '';
+        }
+
+        // Agent-Bereich Foto-Upload
+        function handleAgentPhotos(event) {
+            const files = Array.from(event.target.files);
+
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    compressImage(file, function(compressedDataUrl) {
+                        photos.push(compressedDataUrl);
+                        updatePhotoGrid();
+                        updateAgentPhotoPreview();
+                        showToast('📷 Foto hinzugefügt', 'success');
+                    });
+                }
+            });
+
+            event.target.value = '';
+        }
+
+        // Agent-Bereich Foto-Vorschau aktualisieren
+        function updateAgentPhotoPreview() {
+            const countEl = document.getElementById('agentPhotoCount');
+            const previewEl = document.getElementById('agentPhotoPreview');
+
+            if (countEl) countEl.textContent = photos.length;
+
+            if (previewEl) {
+                previewEl.innerHTML = '';
+                photos.slice(-4).forEach((photo, index) => {
+                    const img = document.createElement('img');
+                    img.src = photo;
+                    img.style.cssText = 'width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 2px solid rgba(255,255,255,0.5);';
+                    img.onclick = () => {
+                        if (confirm('Foto entfernen?')) {
+                            const realIndex = photos.length - 4 + index;
+                            if (realIndex >= 0) {
+                                photos.splice(realIndex < 0 ? photos.length + index - 4 : photos.indexOf(photo), 1);
+                                updatePhotoGrid();
+                                updateAgentPhotoPreview();
+                            }
+                        }
+                    };
+                    previewEl.appendChild(img);
+                });
+
+                if (photos.length > 4) {
+                    const moreEl = document.createElement('div');
+                    moreEl.style.cssText = 'width: 60px; height: 60px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold;';
+                    moreEl.textContent = `+${photos.length - 4}`;
+                    previewEl.appendChild(moreEl);
+                }
+            }
         }
         
         function compressImage(file, callback) {
