@@ -3894,12 +3894,14 @@ Text: ${prompt}`
                     errors: [],
                     note: ''
                 });
-                document.getElementById('feedbackSection').style.display = 'none';
+                const fbSection = document.getElementById('feedbackSection');
+                if (fbSection) fbSection.style.display = 'none';
                 showToast('👍 Danke! KI lernt aus korrekten Beispielen.', 'success');
                 updateKIStats();
             } else {
                 // Details-Bereich anzeigen
-                document.getElementById('feedbackDetails').style.display = 'block';
+                const fbDetails = document.getElementById('feedbackDetails');
+                if (fbDetails) fbDetails.style.display = 'block';
             }
         }
 
@@ -3927,7 +3929,8 @@ Text: ${prompt}`
                 note: note
             });
 
-            document.getElementById('feedbackSection').style.display = 'none';
+            const fbSectionEl = document.getElementById('feedbackSection');
+            if (fbSectionEl) fbSectionEl.style.display = 'none';
             showToast('✏️ Danke! KI lernt aus deiner Korrektur.', 'success');
             updateKIStats();
 
@@ -4109,8 +4112,10 @@ Text: ${prompt}`
                 const userName = localStorage.getItem('cloudUserName');
 
                 if (cloudTeamCode) {
-                    document.getElementById('firebaseTeamCode').value = cloudTeamCode;
-                    if (userName) document.getElementById('cloudUserName').value = userName;
+                    const teamCodeEl = document.getElementById('firebaseTeamCode');
+                    const userNameEl = document.getElementById('cloudUserName');
+                    if (teamCodeEl) teamCodeEl.value = cloudTeamCode;
+                    if (userName && userNameEl) userNameEl.value = userName;
 
                     // Automatisch verbinden
                     connectToCloud(true);
@@ -4126,7 +4131,7 @@ Text: ${prompt}`
         // Cloud-Einstellungen anzeigen/verstecken
         function toggleCloudSettings() {
             const panel = document.getElementById('cloudSettingsPanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
         }
 
         // Mit Cloud verbinden
@@ -4147,6 +4152,8 @@ Text: ${prompt}`
                     firebaseDb = firebase.database();
                 }
 
+                const syncBtns = document.getElementById('cloudSyncButtons');
+
                 if (!firebaseDb) {
                     // Fallback: Ohne Firebase, nur lokale Simulation
                     updateCloudStatus('simulated');
@@ -4154,7 +4161,7 @@ Text: ${prompt}`
                     localStorage.setItem('cloudTeamCode', teamCode);
                     if (userName) localStorage.setItem('cloudUserName', userName);
                     cloudTeamCode = teamCode;
-                    document.getElementById('cloudSyncButtons').style.display = 'flex';
+                    if (syncBtns) syncBtns.style.display = 'flex';
                     return;
                 }
 
@@ -4167,7 +4174,7 @@ Text: ${prompt}`
                 await testRef.once('value');
 
                 updateCloudStatus('connected');
-                document.getElementById('cloudSyncButtons').style.display = 'flex';
+                if (syncBtns) syncBtns.style.display = 'flex';
 
                 if (!silent) showToast('✅ Mit Cloud verbunden!', 'success');
 
@@ -4181,7 +4188,8 @@ Text: ${prompt}`
                 localStorage.setItem('cloudTeamCode', teamCode);
                 if (userName) localStorage.setItem('cloudUserName', userName);
                 cloudTeamCode = teamCode;
-                document.getElementById('cloudSyncButtons').style.display = 'flex';
+                const syncBtnsErr = document.getElementById('cloudSyncButtons');
+                if (syncBtnsErr) syncBtnsErr.style.display = 'flex';
                 if (!silent) showToast('☁️ Offline-Modus (wird synchronisiert wenn online)', 'info');
             }
         }
@@ -4192,8 +4200,10 @@ Text: ${prompt}`
             localStorage.removeItem('cloudTeamCode');
             localStorage.removeItem('cloudUserName');
             updateCloudStatus('disconnected');
-            document.getElementById('cloudSyncButtons').style.display = 'none';
-            document.getElementById('cloudSettingsPanel').style.display = 'none';
+            const syncBtnsEl = document.getElementById('cloudSyncButtons');
+            const settingsPanelEl = document.getElementById('cloudSettingsPanel');
+            if (syncBtnsEl) syncBtnsEl.style.display = 'none';
+            if (settingsPanelEl) settingsPanelEl.style.display = 'none';
             showToast('❌ Cloud-Verbindung getrennt', 'info');
         }
 
