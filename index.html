@@ -23,6 +23,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
+    <!-- Tesseract.js für kostenlose OCR (Texterkennung aus Fotos) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <!-- Leaflet für interaktive Karte (kostenlos, ohne API-Key!) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -2644,6 +2647,80 @@
                 </div>
             </div>
             
+            <!-- FOTO-ZU-RAPPORT SECTION (OCR + KI) -->
+            <div class="rapport-section" style="background: linear-gradient(135deg, #667eea22, #764ba222); border: 2px dashed #667eea;">
+                <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span>📸 Notizzettel fotografieren:</span>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <label class="btn btn-primary" style="padding: 8px 15px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            📷 Foto aufnehmen
+                            <input type="file" accept="image/*" capture="environment" onchange="processNotePhoto(this)" style="display: none;">
+                        </label>
+                        <label class="btn btn-secondary" style="padding: 8px 15px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            🖼️ Bild wählen
+                            <input type="file" accept="image/*" onchange="processNotePhoto(this)" style="display: none;">
+                        </label>
+                    </div>
+                </div>
+                <div id="ocrProcessingArea" style="display: none; margin-top: 15px;">
+                    <!-- Bildvorschau -->
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div style="font-weight: bold; margin-bottom: 5px; font-size: 12px;">📷 Originalbild:</div>
+                            <img id="ocrPreviewImage" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;">
+                        </div>
+                        <div style="flex: 2; min-width: 250px;">
+                            <div style="font-weight: bold; margin-bottom: 5px; font-size: 12px;">📝 Erkannter & verbesserter Text:</div>
+                            <textarea id="ocrResultText" style="width: 100%; height: 150px; border-radius: 8px; border: 1px solid #ddd; padding: 10px; font-size: 13px;" placeholder="Text wird hier angezeigt..."></textarea>
+                        </div>
+                    </div>
+                    <!-- Status & Fortschritt -->
+                    <div id="ocrStatus" style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 8px; font-size: 12px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span id="ocrStatusIcon">⏳</span>
+                            <span id="ocrStatusText">Bereit</span>
+                        </div>
+                        <div id="ocrProgressBar" style="margin-top: 8px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; display: none;">
+                            <div id="ocrProgressFill" style="height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <!-- Mitarbeiter-Zuordnung -->
+                    <div style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 12px;">👷 Mitarbeiter zuordnen (optional):</div>
+                        <select id="ocrMitarbeiterSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #ddd; font-size: 13px;">
+                            <option value="">-- Kein Mitarbeiter --</option>
+                        </select>
+                    </div>
+                    <!-- Ziel-Auswahl -->
+                    <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                        <div style="font-weight: bold; margin-bottom: 8px; font-size: 12px;">📋 Einfügen in:</div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="ocrTarget" value="taetigkeit" checked> 🔨 Tätigkeiten
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="ocrTarget" value="material"> 📦 Material
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                <input type="radio" name="ocrTarget" value="maschinen"> 🔧 Maschinen
+                            </label>
+                        </div>
+                    </div>
+                    <!-- Aktions-Buttons -->
+                    <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-success" onclick="insertOcrToRapport()" style="flex: 1; min-width: 150px;">
+                            ✅ In Rapport übernehmen
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="reprocessOcrWithAI()" style="flex: 1; min-width: 150px;">
+                            🤖 Nochmal mit KI verbessern
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="cancelOcrProcess()" style="padding: 10px 15px;">
+                            ❌ Abbrechen
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- TÄTIGKEITEN SECTION -->
             <div class="rapport-section">
                 <div class="rapport-section-title" style="display: flex; justify-content: space-between; align-items: center;">
@@ -4711,6 +4788,336 @@ Wichtig:
 
             return result;
         }
+
+        // ============================================
+        // FOTO-ZU-RAPPORT (OCR + KI) FUNKTIONEN
+        // ============================================
+
+        // Globale Variable für aktuelles OCR-Bild
+        let currentOcrImageData = null;
+
+        // Foto verarbeiten (OCR + KI)
+        async function processNotePhoto(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const reader = new FileReader();
+
+            reader.onload = async function(e) {
+                const imageData = e.target.result;
+                currentOcrImageData = imageData;
+
+                // UI anzeigen
+                const processingArea = document.getElementById('ocrProcessingArea');
+                const previewImg = document.getElementById('ocrPreviewImage');
+                const resultText = document.getElementById('ocrResultText');
+
+                if (processingArea) processingArea.style.display = 'block';
+                if (previewImg) previewImg.src = imageData;
+                if (resultText) resultText.value = '';
+
+                // Mitarbeiter-Dropdown füllen
+                populateOcrMitarbeiterSelect();
+
+                // OCR starten
+                await performOCR(imageData);
+            };
+
+            reader.readAsDataURL(file);
+            input.value = ''; // Reset für erneute Auswahl
+        }
+
+        // Mitarbeiter-Dropdown für OCR füllen
+        function populateOcrMitarbeiterSelect() {
+            const select = document.getElementById('ocrMitarbeiterSelect');
+            if (!select) return;
+
+            const wb = getWissensbasis();
+            const mitarbeiter = wb.mitarbeiter || [];
+
+            select.innerHTML = '<option value="">-- Kein Mitarbeiter --</option>';
+            mitarbeiter.forEach(m => {
+                const option = document.createElement('option');
+                option.value = m;
+                option.textContent = m;
+                select.appendChild(option);
+            });
+        }
+
+        // OCR Status aktualisieren
+        function updateOcrStatus(icon, text, progress = null) {
+            const iconEl = document.getElementById('ocrStatusIcon');
+            const textEl = document.getElementById('ocrStatusText');
+            const progressBar = document.getElementById('ocrProgressBar');
+            const progressFill = document.getElementById('ocrProgressFill');
+
+            if (iconEl) iconEl.textContent = icon;
+            if (textEl) textEl.textContent = text;
+
+            if (progress !== null && progressBar && progressFill) {
+                progressBar.style.display = 'block';
+                progressFill.style.width = `${progress}%`;
+            } else if (progressBar) {
+                progressBar.style.display = 'none';
+            }
+        }
+
+        // OCR mit Tesseract durchführen
+        async function performOCR(imageData) {
+            updateOcrStatus('⏳', 'Lade Texterkennung...', 10);
+
+            try {
+                // Prüfen ob Tesseract geladen ist
+                if (typeof Tesseract === 'undefined') {
+                    throw new Error('Tesseract.js nicht geladen');
+                }
+
+                updateOcrStatus('🔍', 'Erkenne Text im Bild...', 30);
+
+                // OCR durchführen
+                const result = await Tesseract.recognize(
+                    imageData,
+                    'deu', // Deutsch
+                    {
+                        logger: m => {
+                            if (m.status === 'recognizing text') {
+                                const progress = 30 + Math.round(m.progress * 50);
+                                updateOcrStatus('🔍', `Erkenne Text... ${Math.round(m.progress * 100)}%`, progress);
+                            }
+                        }
+                    }
+                );
+
+                const rawText = result.data.text.trim();
+                console.log('📝 OCR Rohtext:', rawText);
+
+                if (!rawText) {
+                    updateOcrStatus('⚠️', 'Kein Text erkannt. Bitte besseres Foto machen.', null);
+                    const ocrResult = document.getElementById('ocrResultText');
+                    if (ocrResult) ocrResult.value = '(Kein Text erkannt)';
+                    return;
+                }
+
+                updateOcrStatus('🤖', 'KI verbessert Text...', 85);
+
+                // Text mit KI verbessern
+                const improvedText = await improveTextWithAI(rawText);
+
+                const ocrResultEl = document.getElementById('ocrResultText');
+                if (ocrResultEl) ocrResultEl.value = improvedText;
+                updateOcrStatus('✅', 'Text erkannt und verbessert!', 100);
+
+                setTimeout(() => {
+                    updateOcrStatus('✅', 'Bereit zum Einfügen', null);
+                }, 1500);
+
+            } catch (error) {
+                console.error('OCR Fehler:', error);
+                updateOcrStatus('❌', 'Fehler: ' + error.message, null);
+
+                // Fallback: Bild kann nicht gelesen werden
+                const ocrFallback = document.getElementById('ocrResultText');
+                if (ocrFallback) ocrFallback.value = '(Texterkennung fehlgeschlagen - bitte manuell eingeben)';
+            }
+        }
+
+        // Text mit KI verbessern (kostenlos über Pollinations)
+        async function improveTextWithAI(rawText) {
+            const systemPrompt = `Du bist ein Assistent für Baustellenberichte einer Fliesenfirma.
+Deine Aufgabe: Verbessere den folgenden Text von einem handgeschriebenen Notizzettel.
+
+Regeln:
+- Korrigiere Rechtschreibfehler
+- Formatiere als klare Stichpunkte
+- Behalte alle wichtigen Infos: Mengen, Materialien, Tätigkeiten, Namen
+- Verwende professionelle Baustellensprache
+- Wenn Mengen fehlen, lasse Platzhalter [...]
+- Antworte NUR mit dem verbesserten Text, keine Erklärungen`;
+
+            const userPrompt = `Bitte verbessere diesen handgeschriebenen Text:
+
+${rawText}`;
+
+            try {
+                // Versuche kostenlose KI
+                const response = await fetch('https://text.pollinations.ai/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        model: 'openai'
+                    })
+                });
+
+                if (response.ok) {
+                    const improvedText = await response.text();
+                    if (improvedText && improvedText.length > 10) {
+                        console.log('✅ KI-Verbesserung erfolgreich');
+                        return improvedText.trim();
+                    }
+                }
+            } catch (e) {
+                console.log('KI-Verbesserung fehlgeschlagen:', e);
+            }
+
+            // Fallback: Einfache Bereinigung ohne KI
+            return cleanupTextBasic(rawText);
+        }
+
+        // Einfache Textbereinigung (ohne KI)
+        function cleanupTextBasic(text) {
+            return text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => '• ' + line)
+                .join('\n');
+        }
+
+        // Nochmal mit KI verbessern
+        async function reprocessOcrWithAI() {
+            const textArea = document.getElementById('ocrResultText');
+            if (!textArea || !textArea.value) {
+                showToast('Kein Text zum Verbessern vorhanden', 'warning');
+                return;
+            }
+
+            updateOcrStatus('🤖', 'KI verbessert Text erneut...', 50);
+
+            const improvedText = await improveTextWithAI(textArea.value);
+            textArea.value = improvedText;
+
+            updateOcrStatus('✅', 'Text nochmal verbessert!', 100);
+            setTimeout(() => {
+                updateOcrStatus('✅', 'Bereit zum Einfügen', null);
+            }, 1500);
+        }
+
+        // OCR-Text in Rapport einfügen
+        function insertOcrToRapport() {
+            const textArea = document.getElementById('ocrResultText');
+            const targetRadio = document.querySelector('input[name="ocrTarget"]:checked');
+            const mitarbeiterSelect = document.getElementById('ocrMitarbeiterSelect');
+
+            if (!textArea || !textArea.value.trim()) {
+                showToast('Kein Text zum Einfügen vorhanden', 'warning');
+                return;
+            }
+
+            const text = textArea.value.trim();
+            const target = targetRadio ? targetRadio.value : 'taetigkeit';
+            const mitarbeiter = mitarbeiterSelect ? mitarbeiterSelect.value : '';
+
+            // Mitarbeiter-Prefix hinzufügen wenn gewählt
+            let finalText = text;
+            if (mitarbeiter) {
+                finalText = `[${mitarbeiter}] ${text}`;
+            }
+
+            // In das richtige Feld einfügen
+            switch (target) {
+                case 'taetigkeit':
+                    // Als neue Tätigkeit hinzufügen
+                    addTaetigkeitFromOcr(finalText);
+                    break;
+                case 'material':
+                    appendToTextarea('materialText', finalText);
+                    break;
+                case 'maschinen':
+                    appendToTextarea('maschinenText', finalText);
+                    break;
+            }
+
+            // Erfolgsmeldung
+            showToast('✅ Text wurde in Rapport eingefügt!', 'success');
+
+            // OCR-Bereich zurücksetzen
+            cancelOcrProcess();
+        }
+
+        // Text an Textarea anhängen
+        function appendToTextarea(textareaId, text) {
+            const textarea = document.getElementById(textareaId);
+            if (!textarea) return;
+
+            if (textarea.value.trim()) {
+                textarea.value += '\n\n' + text;
+            } else {
+                textarea.value = text;
+            }
+        }
+
+        // Tätigkeit aus OCR-Text hinzufügen
+        function addTaetigkeitFromOcr(text) {
+            // Teile den Text in Zeilen auf
+            const lines = text.split('\n').filter(l => l.trim());
+
+            if (lines.length === 0) return;
+
+            // Jede Zeile als separate Tätigkeit
+            lines.forEach(line => {
+                // Entferne Bulletpoints
+                let cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
+                if (!cleanLine) return;
+
+                // Versuche Menge und Einheit zu erkennen
+                let menge = '';
+                let einheit = 'm²';
+
+                const mengeMatch = cleanLine.match(/(\d+(?:[.,]\d+)?)\s*(m²|qm|stk|stück|lfm|m|kg|l)/i);
+                if (mengeMatch) {
+                    menge = mengeMatch[1].replace(',', '.');
+                    einheit = mengeMatch[2].toLowerCase();
+                    if (einheit === 'qm') einheit = 'm²';
+                    if (einheit === 'stück') einheit = 'stk';
+                    // Entferne die Menge aus der Beschreibung
+                    cleanLine = cleanLine.replace(mengeMatch[0], '').trim();
+                }
+
+                // Tätigkeit zur Tabelle hinzufügen
+                if (typeof addTaetigkeitRow === 'function') {
+                    const row = addTaetigkeitRow();
+                    if (row) {
+                        const inputs = row.querySelectorAll('input');
+                        const textarea = row.querySelector('textarea');
+                        if (textarea) textarea.value = cleanLine;
+                        if (inputs[1]) inputs[1].value = menge; // Menge
+
+                        const select = row.querySelector('select');
+                        if (select) {
+                            // Versuche passende Einheit zu finden
+                            for (let option of select.options) {
+                                if (option.value.toLowerCase() === einheit) {
+                                    select.value = option.value;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // OCR-Prozess abbrechen
+        function cancelOcrProcess() {
+            const processingArea = document.getElementById('ocrProcessingArea');
+            const previewImg = document.getElementById('ocrPreviewImage');
+            const resultText = document.getElementById('ocrResultText');
+
+            if (processingArea) processingArea.style.display = 'none';
+            if (previewImg) previewImg.src = '';
+            if (resultText) resultText.value = '';
+
+            currentOcrImageData = null;
+            updateOcrStatus('⏳', 'Bereit', null);
+        }
+
+        // ============================================
+        // ENDE FOTO-ZU-RAPPORT FUNKTIONEN
+        // ============================================
 
         // KI-Status UI aktualisieren
         function updateKIStatus(type, available) {
