@@ -4374,14 +4374,16 @@ Text: ${prompt}`
 
         // Dashboard öffnen
         function openAnalyticsDashboard() {
-            document.getElementById('analyticsDashboardModal').style.display = 'block';
+            const modal = document.getElementById('analyticsDashboardModal');
+            if (modal) modal.style.display = 'block';
             document.body.style.overflow = 'hidden';
             updateAnalyticsDashboard();
         }
 
         // Dashboard schließen
         function closeAnalyticsDashboard() {
-            document.getElementById('analyticsDashboardModal').style.display = 'none';
+            const modal = document.getElementById('analyticsDashboardModal');
+            if (modal) modal.style.display = 'none';
             document.body.style.overflow = '';
         }
 
@@ -5377,9 +5379,13 @@ ${rawText}`;
 
         // Wissensbasis speichern
         function saveWissensbasisEdit() {
-            const mitarbeiter = document.getElementById('wbMitarbeiterEdit').value.split('\n').map(s => s.trim()).filter(s => s);
-            const kunden = document.getElementById('wbKundenEdit').value.split('\n').map(s => s.trim()).filter(s => s);
-            const materialien = document.getElementById('wbMaterialienEdit').value.split('\n').map(s => s.trim()).filter(s => s);
+            const wbMitarbeiterEl = document.getElementById('wbMitarbeiterEdit');
+            const wbKundenEl = document.getElementById('wbKundenEdit');
+            const wbMaterialienEl = document.getElementById('wbMaterialienEdit');
+
+            const mitarbeiter = wbMitarbeiterEl ? wbMitarbeiterEl.value.split('\n').map(s => s.trim()).filter(s => s) : [];
+            const kunden = wbKundenEl ? wbKundenEl.value.split('\n').map(s => s.trim()).filter(s => s) : [];
+            const materialien = wbMaterialienEl ? wbMaterialienEl.value.split('\n').map(s => s.trim()).filter(s => s) : [];
 
             localStorage.setItem('firmenMitarbeiter', JSON.stringify(mitarbeiter));
             localStorage.setItem('firmenKunden', JSON.stringify(kunden));
@@ -5492,8 +5498,10 @@ ${rawText}`;
                 // IP-basiert versuchen (schnell, keine Permission nötig)
                 const ipLoc = await getIPLocation();
                 if (ipLoc && ipLoc.lat && ipLoc.lon) {
-                    document.getElementById('gpsLat').value = ipLoc.lat;
-                    document.getElementById('gpsLon').value = ipLoc.lon;
+                    const gpsLatEl = document.getElementById('gpsLat');
+                    const gpsLonEl = document.getElementById('gpsLon');
+                    if (gpsLatEl) gpsLatEl.value = ipLoc.lat;
+                    if (gpsLonEl) gpsLonEl.value = ipLoc.lon;
                     if (statusEl) {
                         statusEl.textContent = `📍 ${ipLoc.city || 'Standort'} (IP-basiert, ±20km)`;
                         statusEl.className = 'gps-status gps-success';
@@ -5667,10 +5675,12 @@ ${rawText}`;
                 const avgAccuracy = Math.round(
                     measurements.reduce((sum, m) => sum + m.accuracy, 0) / measurements.length
                 );
-                
+
                 // Set values
-                document.getElementById('gpsLat').value = finalLat;
-                document.getElementById('gpsLon').value = finalLon;
+                const gpsLatEl = document.getElementById('gpsLat');
+                const gpsLonEl = document.getElementById('gpsLon');
+                if (gpsLatEl) gpsLatEl.value = finalLat;
+                if (gpsLonEl) gpsLonEl.value = finalLon;
                 
                 // Show success with accuracy
                 statusEl.className = 'gps-status gps-success';
@@ -5705,9 +5715,11 @@ ${rawText}`;
                     // Success: Use IP location
                     const finalLat = ipLocation.lat.toFixed(6);
                     const finalLon = ipLocation.lon.toFixed(6);
-                    
-                    document.getElementById('gpsLat').value = finalLat;
-                    document.getElementById('gpsLon').value = finalLon;
+
+                    const gpsLatEl2 = document.getElementById('gpsLat');
+                    const gpsLonEl2 = document.getElementById('gpsLon');
+                    if (gpsLatEl2) gpsLatEl2.value = finalLat;
+                    if (gpsLonEl2) gpsLonEl2.value = finalLon;
                     
                     statusEl.className = 'gps-status gps-success';
                     statusEl.innerHTML = `✅ Standort erfasst: ${finalLat}, ${finalLon} (via IP-Standort)`;
@@ -5806,12 +5818,17 @@ ${rawText}`;
 
         // ===== PROJEKT INFO ÜBERNEHMEN =====
         function copyProjektInfo() {
-            const projektnummerHelper = document.getElementById('projektnummerHelper').value;
-            const baustelleHelper = document.getElementById('baustelleHelper').value;
-            
-            document.getElementById('projektnummer').value = projektnummerHelper;
-            document.getElementById('baustelle').value = baustelleHelper;
-            
+            const projektnummerHelperEl = document.getElementById('projektnummerHelper');
+            const baustelleHelperEl = document.getElementById('baustelleHelper');
+            const projektnummerEl = document.getElementById('projektnummer');
+            const baustelleEl = document.getElementById('baustelle');
+
+            const projektnummerHelper = projektnummerHelperEl ? projektnummerHelperEl.value : '';
+            const baustelleHelper = baustelleHelperEl ? baustelleHelperEl.value : '';
+
+            if (projektnummerEl) projektnummerEl.value = projektnummerHelper;
+            if (baustelleEl) baustelleEl.value = baustelleHelper;
+
             showToast('Projekt-Informationen übernommen', 'success');
         }
         
@@ -5889,15 +5906,19 @@ ${rawText}`;
             if (coords.length === 2) {
                 const lat = parseFloat(coords[0]);
                 const lon = parseFloat(coords[1]);
-                
+
                 if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
                     // Valid coordinates
-                    document.getElementById('gpsLat').value = lat.toFixed(6);
-                    document.getElementById('gpsLon').value = lon.toFixed(6);
-                    
+                    const gpsLatEl = document.getElementById('gpsLat');
+                    const gpsLonEl = document.getElementById('gpsLon');
+                    if (gpsLatEl) gpsLatEl.value = lat.toFixed(6);
+                    if (gpsLonEl) gpsLonEl.value = lon.toFixed(6);
+
                     const gpsStatus = document.getElementById('gpsStatus');
-                    gpsStatus.className = 'gps-status gps-success';
-                    gpsStatus.innerHTML = `✅ QR-Code gescannt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    if (gpsStatus) {
+                        gpsStatus.className = 'gps-status gps-success';
+                        gpsStatus.innerHTML = `✅ QR-Code gescannt: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    }
                     
                     updateGPSSourceBadge('gps', 0); // QR is exact, 0m accuracy
                     updateMapMarker();
@@ -6043,28 +6064,32 @@ ${rawText}`;
         
         // ===== v1.14/v1.15: HTTPS SETUP MODAL =====
         function showHTTPSSetupModal() {
-            document.getElementById('httpsSetupModal').style.display = 'flex';
+            const modal = document.getElementById('httpsSetupModal');
+            if (modal) modal.style.display = 'flex';
         }
-        
+
         function closeHTTPSSetupModal() {
-            document.getElementById('httpsSetupModal').style.display = 'none';
+            const modal = document.getElementById('httpsSetupModal');
+            if (modal) modal.style.display = 'none';
         }
-        
+
         // ===== v1.14: DEBUG BOX =====
         function closeDebugBox() {
-            document.getElementById('debugInfoBox').style.display = 'none';
+            const debugBox = document.getElementById('debugInfoBox');
+            if (debugBox) debugBox.style.display = 'none';
         }
-        
+
         // ===== DROPDOWNS =====
         function showTaetigkeiten() {
-            const hauptkat = document.getElementById('taetigkeitHaupt').value;
+            const hauptkatEl = document.getElementById('taetigkeitHaupt');
             const container = document.getElementById('taetigkeitenChips');
-            
-            if (!hauptkat) {
-                container.innerHTML = '';
+            const hauptkat = hauptkatEl ? hauptkatEl.value : '';
+
+            if (!hauptkat || !container) {
+                if (container) container.innerHTML = '';
                 return;
             }
-            
+
             container.innerHTML = '';
             
             taetigkeitenData[hauptkat].forEach(item => {
@@ -6082,16 +6107,17 @@ ${rawText}`;
         }
         
         function showMaterial() {
-            const hauptkat = document.getElementById('materialHaupt').value;
+            const hauptkatEl = document.getElementById('materialHaupt');
             const container = document.getElementById('materialChips');
-            
-            if (!hauptkat) {
-                container.innerHTML = '';
+            const hauptkat = hauptkatEl ? hauptkatEl.value : '';
+
+            if (!hauptkat || !container) {
+                if (container) container.innerHTML = '';
                 return;
             }
-            
+
             container.innerHTML = '';
-            
+
             materialData[hauptkat].forEach(item => {
                 const chip = document.createElement('div');
                 chip.className = 'chip';
@@ -6107,16 +6133,17 @@ ${rawText}`;
         }
         
         function showWerkzeuge() {
-            const hauptkat = document.getElementById('werkzeugeHaupt').value;
+            const hauptkatEl = document.getElementById('werkzeugeHaupt');
             const container = document.getElementById('werkzeugeChips');
-            
-            if (!hauptkat) {
-                container.innerHTML = '';
+            const hauptkat = hauptkatEl ? hauptkatEl.value : '';
+
+            if (!hauptkat || !container) {
+                if (container) container.innerHTML = '';
                 return;
             }
-            
+
             container.innerHTML = '';
-            
+
             werkzeugeData[hauptkat].forEach(item => {
                 const chip = document.createElement('div');
                 chip.className = 'chip';
@@ -6148,18 +6175,25 @@ ${rawText}`;
                 alert('⚠️ Bitte wählen Sie mindestens eine Tätigkeit aus!');
                 return;
             }
-            
+
             const tbody = document.getElementById('taetigkeitenTable');
-            const datum = document.getElementById('datum').value;
-            let position = document.getElementById('taetigkeitPosition').value.trim();
-            const menge = document.getElementById('taetigkeitMenge').value.trim();
-            const einheit = document.getElementById('taetigkeitEinheit').value;
-            
+            if (!tbody) return;
+
+            const datumEl = document.getElementById('datum');
+            const positionEl = document.getElementById('taetigkeitPosition');
+            const mengeEl = document.getElementById('taetigkeitMenge');
+            const einheitEl = document.getElementById('taetigkeitEinheit');
+
+            const datum = datumEl ? datumEl.value : '';
+            let position = positionEl ? positionEl.value.trim() : '';
+            const menge = mengeEl ? mengeEl.value.trim() : '';
+            const einheit = einheitEl ? einheitEl.value : '';
+
             // Wenn keine Position eingegeben, automatisch hochzählen
             if (!position) {
                 position = taetigkeitenRowCounter.toString();
             }
-            
+
             selectedTaetigkeiten.forEach(taetigkeit => {
                 const row = document.createElement('tr');
                 row.className = 'editable-row';
@@ -6264,71 +6298,81 @@ ${rawText}`;
         
         function addWerkzeugeToForm() {
             const textarea = document.getElementById('maschinenText');
-            const helperText = document.getElementById('werkzeugeHelperText').value.trim();
-            
+            const helperTextEl = document.getElementById('werkzeugeHelperText');
+            const helperText = helperTextEl ? helperTextEl.value.trim() : '';
+
             // Sammle alle Einträge: Chips + Textarea
             let allItems = [];
-            
+
             if (selectedWerkzeuge.length > 0) {
                 allItems = allItems.concat(selectedWerkzeuge);
             }
-            
+
             if (helperText) {
                 allItems.push(helperText);
             }
-            
+
             if (allItems.length === 0) {
                 alert('⚠️ Bitte wählen Sie Werkzeuge aus oder geben Sie etwas ein!');
                 return;
             }
-            
+
             // Füge zum Formular hinzu
-            const current = textarea.value.trim();
-            const newItems = allItems.join('\n');
-            
-            if (current) {
-                textarea.value = current + '\n' + newItems;
-            } else {
-                textarea.value = newItems;
+            if (textarea) {
+                const current = textarea.value.trim();
+                const newItems = allItems.join('\n');
+
+                if (current) {
+                    textarea.value = current + '\n' + newItems;
+                } else {
+                    textarea.value = newItems;
+                }
             }
-            
+
             // RESET nach Übernehmen
             selectedWerkzeuge = [];
-            document.getElementById('werkzeugeChips').innerHTML = '';
-            document.getElementById('werkzeugeHaupt').value = '';
-            document.getElementById('werkzeugeHelperText').value = '';
-            
+            const wChips = document.getElementById('werkzeugeChips');
+            const wHaupt = document.getElementById('werkzeugeHaupt');
+            if (wChips) wChips.innerHTML = '';
+            if (wHaupt) wHaupt.value = '';
+            if (helperTextEl) helperTextEl.value = '';
+
             showToast('Werkzeuge übernommen', 'success');
         }
         
         // ===== PERSONAL =====
         function addPersonal() {
-            const anzahl = parseInt(document.getElementById('personalAnzahl').value) || 1;
-            const typ = document.getElementById('personalTyp').value;
-            const stunden = parseFloat(document.getElementById('personalStunden').value) || 0;
-            
+            const anzahlEl = document.getElementById('personalAnzahl');
+            const typEl = document.getElementById('personalTyp');
+            const stundenEl = document.getElementById('personalStunden');
+
+            const anzahl = parseInt(anzahlEl ? anzahlEl.value : '1') || 1;
+            const typ = typEl ? typEl.value : '';
+            const stunden = parseFloat(stundenEl ? stundenEl.value : '0') || 0;
+
             if (stunden === 0) {
                 alert('⚠️ Bitte Stunden eingeben!');
                 return;
             }
-            
+
             personalListe.push({ anzahl, typ, stunden });
             updatePersonalListe();
-            
-            document.getElementById('personalAnzahl').value = '1';
-            document.getElementById('personalStunden').value = '';
+
+            if (anzahlEl) anzahlEl.value = '1';
+            if (stundenEl) stundenEl.value = '';
             showToast('Personal hinzugefügt', 'success');
         }
         
         function updatePersonalListe() {
             const container = document.getElementById('personalListe');
             const formContainer = document.getElementById('personalFormText');
-            
+
             if (personalListe.length === 0) {
-                container.innerHTML = '';
-                formContainer.innerHTML = '';
+                if (container) container.innerHTML = '';
+                if (formContainer) formContainer.innerHTML = '';
                 return;
             }
+            if (!container) return;
             
             // Update Helper-Liste (oben)
             container.innerHTML = '<div style="margin-top: 10px; border: 2px solid #e2e8f0; border-radius: 6px; padding: 10px; background: #f8fafc;">';
@@ -6361,22 +6405,28 @@ ${rawText}`;
         
         // ===== FAHRZEUGE =====
         function addFahrzeug() {
-            const anzahl = parseInt(document.getElementById('fahrzeugAnzahl').value) || 1;
-            const typ = document.getElementById('fahrzeugTyp').value;
-            const kennzeichen = document.getElementById('fahrzeugKennzeichen').value.trim() || 'ohne Kennzeichen';
-            const km = parseFloat(document.getElementById('fahrzeugKm').value) || 0;
-            
+            const anzahlEl = document.getElementById('fahrzeugAnzahl');
+            const typEl = document.getElementById('fahrzeugTyp');
+            const kennzeichenEl = document.getElementById('fahrzeugKennzeichen');
+            const kmEl = document.getElementById('fahrzeugKm');
+
+            const anzahl = parseInt(anzahlEl ? anzahlEl.value : '1') || 1;
+            const typ = typEl ? typEl.value : '';
+            const kennzeichen = (kennzeichenEl ? kennzeichenEl.value.trim() : '') || 'ohne Kennzeichen';
+            const km = parseFloat(kmEl ? kmEl.value : '0') || 0;
+
             fahrzeugListe.push({ anzahl, typ, kennzeichen, km });
             updateFahrzeugListe();
-            
-            document.getElementById('fahrzeugAnzahl').value = '1';
-            document.getElementById('fahrzeugKennzeichen').value = '';
-            document.getElementById('fahrzeugKm').value = '';
+
+            if (anzahlEl) anzahlEl.value = '1';
+            if (kennzeichenEl) kennzeichenEl.value = '';
+            if (kmEl) kmEl.value = '';
             showToast('Fahrzeug hinzugefügt', 'success');
         }
-        
+
         function updateFahrzeugListe() {
             const container = document.getElementById('fahrzeugListe');
+            if (!container) return;
             if (fahrzeugListe.length === 0) {
                 container.innerHTML = '';
                 return;
@@ -6623,7 +6673,8 @@ ${rawText}`;
         function updateRapportNummer() {
             const berichte = JSON.parse(localStorage.getItem('baustellenberichte') || '[]');
             const nextNr = (berichte.length + 1).toString().padStart(5, '0');
-            document.getElementById('rapportNummer').textContent = nextNr;
+            const rapportNrEl = document.getElementById('rapportNummer');
+            if (rapportNrEl) rapportNrEl.textContent = nextNr;
         }
         
         // ===== SAVE =====
@@ -6790,7 +6841,10 @@ ${rawText}`;
             const canvas2 = document.getElementById('signaturePad2');
             const signature1 = canvas1 ? canvas1.toDataURL('image/jpeg', 0.8) : '';
             const signature2 = canvas2 ? canvas2.toDataURL('image/jpeg', 0.8) : '';
-            
+
+            const materialTextEl = document.getElementById('materialText');
+            const maschinenTextEl = document.getElementById('maschinenText');
+
             const bericht = {
                 rapportNr,
                 datum,
@@ -6798,8 +6852,8 @@ ${rawText}`;
                 baustelle,
                 gps: { lat: gpsLat, lon: gpsLon },
                 taetigkeiten,
-                material: document.getElementById('materialText').value,
-                maschinen: document.getElementById('maschinenText').value,
+                material: materialTextEl ? materialTextEl.value : '',
+                maschinen: maschinenTextEl ? maschinenTextEl.value : '',
                 personal: [...personalListe],
                 fahrzeuge: [...fahrzeugListe],
                 photos: [...photos],
@@ -6973,14 +7027,22 @@ ${rawText}`;
                 );
                 
                 if (confirmed) {
-                    document.getElementById('baustelle').value = data.baustelle || '';
-                    document.getElementById('projektnummer').value = data.projektnummer || '';
-                    document.getElementById('datum').value = data.datum || '';
-                    document.getElementById('gpsLat').value = data.gpsLat || '';
-                    document.getElementById('gpsLon').value = data.gpsLon || '';
-                    document.getElementById('materialText').value = data.material || '';
-                    document.getElementById('maschinenText').value = data.maschinen || '';
-                    
+                    const baustelleEl = document.getElementById('baustelle');
+                    const projektnummerEl = document.getElementById('projektnummer');
+                    const datumEl = document.getElementById('datum');
+                    const gpsLatEl = document.getElementById('gpsLat');
+                    const gpsLonEl = document.getElementById('gpsLon');
+                    const materialTextEl = document.getElementById('materialText');
+                    const maschinenTextEl = document.getElementById('maschinenText');
+
+                    if (baustelleEl) baustelleEl.value = data.baustelle || '';
+                    if (projektnummerEl) projektnummerEl.value = data.projektnummer || '';
+                    if (datumEl) datumEl.value = data.datum || '';
+                    if (gpsLatEl) gpsLatEl.value = data.gpsLat || '';
+                    if (gpsLonEl) gpsLonEl.value = data.gpsLon || '';
+                    if (materialTextEl) materialTextEl.value = data.material || '';
+                    if (maschinenTextEl) maschinenTextEl.value = data.maschinen || '';
+
                     showToast('✅ Auto-gespeicherte Daten wiederhergestellt!', 'success');
                 }
                 
@@ -7028,21 +7090,24 @@ ${rawText}`;
             // Initialize map
             setTimeout(() => {
                 // Get current coordinates or use default (Berlin)
-                const currentLat = parseFloat(document.getElementById('gpsLat').value) || 52.5200;
-                const currentLon = parseFloat(document.getElementById('gpsLon').value) || 13.4050;
-                
+                const gpsLatEl = document.getElementById('gpsLat');
+                const gpsLonEl = document.getElementById('gpsLon');
+                const currentLat = parseFloat(gpsLatEl ? gpsLatEl.value : '') || 52.5200;
+                const currentLon = parseFloat(gpsLonEl ? gpsLonEl.value : '') || 13.4050;
+
                 map = L.map('map').setView([currentLat, currentLon], 13);
-                
+
                 // Add OpenStreetMap tiles
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
                     maxZoom: 19
                 }).addTo(map);
-                
+
                 // Add marker if coordinates exist
-                if (document.getElementById('gpsLat').value) {
+                if (gpsLatEl && gpsLatEl.value) {
                     marker = L.marker([currentLat, currentLon]).addTo(map);
-                    document.getElementById('mapCoords').innerHTML = `📍 Ausgewählt: ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
+                    const mapCoordsEl = document.getElementById('mapCoords');
+                    if (mapCoordsEl) mapCoordsEl.innerHTML = `📍 Ausgewählt: ${currentLat.toFixed(6)}, ${currentLon.toFixed(6)}`;
                 }
                 
                 // Add click event
@@ -7059,7 +7124,8 @@ ${rawText}`;
                     marker = L.marker([lat, lon]).addTo(map);
                     
                     // Update display with loading message
-                    document.getElementById('mapCoords').innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)} - <span style="color: #f59e0b;">⏳ Adresse wird geladen...</span>`;
+                    const mapCoordsEl = document.getElementById('mapCoords');
+                    if (mapCoordsEl) mapCoordsEl.innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)} - <span style="color: #f59e0b;">⏳ Adresse wird geladen...</span>`;
                     
                     // Reverse Geocoding mit Nominatim
                     try {
@@ -7140,15 +7206,17 @@ ${rawText}`;
                         optionsHTML += '</select>';
                         optionsHTML += '</div>';
                         
-                        document.getElementById('mapCoords').innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)}` + optionsHTML;
-                        
+                        const mapCoordsEl2 = document.getElementById('mapCoords');
+                        if (mapCoordsEl2) mapCoordsEl2.innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)}` + optionsHTML;
+
                         // Speichere Optionen für confirmMapSelection
                         window.selectedLocationOptions = options;
-                        
+
                     } catch (error) {
                         // Offline-Fallback: Nur Koordinaten
                         console.log('Reverse Geocoding fehlgeschlagen:', error);
-                        document.getElementById('mapCoords').innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)} <span style="color: #ef4444; font-size: 12px;">(Offline - nur Koordinaten)</span>`;
+                        const mapCoordsEl3 = document.getElementById('mapCoords');
+                        if (mapCoordsEl3) mapCoordsEl3.innerHTML = `📍 ${lat.toFixed(6)}, ${lon.toFixed(6)} <span style="color: #ef4444; font-size: 12px;">(Offline - nur Koordinaten)</span>`;
                         window.selectedLocationOptions = [{
                             label: '📍 Koordinaten',
                             value: `${lat.toFixed(6)}, ${lon.toFixed(6)}`
@@ -7163,20 +7231,22 @@ ${rawText}`;
                 showToast('⚠️ Bitte erst einen Standort auf der Karte wählen', 'warning');
                 return;
             }
-            
+
             const latlng = marker.getLatLng();
-            document.getElementById('gpsLat').value = latlng.lat.toFixed(6);
-            document.getElementById('gpsLon').value = latlng.lng.toFixed(6);
-            
+            const gpsLatEl = document.getElementById('gpsLat');
+            const gpsLonEl = document.getElementById('gpsLon');
+            if (gpsLatEl) gpsLatEl.value = latlng.lat.toFixed(6);
+            if (gpsLonEl) gpsLonEl.value = latlng.lng.toFixed(6);
+
             // Übernehme ausgewählte Adress-Information ins Baustelle-Feld
             if (window.selectedLocationOptions) {
                 const selectEl = document.getElementById('addressSelect');
                 const selectedIdx = selectEl ? parseInt(selectEl.value) : 0;
                 const selectedAddress = window.selectedLocationOptions[selectedIdx].value;
-                
+
                 // Baustelle-Feld finden
                 const baustelleField = document.getElementById('baustelle');
-                
+
                 // Anhängen an bestehenden Text (mit Komma wenn bereits Text vorhanden)
                 if (baustelleField) {
                     const currentValue = baustelleField.value.trim();
@@ -7185,14 +7255,16 @@ ${rawText}`;
                     } else {
                         baustelleField.value = selectedAddress;
                     }
-                    
+
                     showToast(`✅ Adresse hinzugefügt: ${selectedAddress}`, 'success');
                 }
             }
-            
+
             const statusEl = document.getElementById('gpsStatus');
-            statusEl.className = 'gps-status gps-success';
-            statusEl.innerHTML = `✅ Standort von Karte übernommen: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+            if (statusEl) {
+                statusEl.className = 'gps-status gps-success';
+                statusEl.innerHTML = `✅ Standort von Karte übernommen: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+            }
             
             closeMapPicker();
         }
@@ -7232,16 +7304,19 @@ ${rawText}`;
                 doc.text('Baustellenbericht', 15, 24);
                 
                 doc.setTextColor(0, 0, 0);
-                
+
                 // Rapport-Nummer
-                const rapportNr = document.getElementById('rapportNummer').textContent;
+                const rapportNrEl = document.getElementById('rapportNummer');
+                const rapportNr = rapportNrEl ? rapportNrEl.textContent : '';
                 doc.setFontSize(14);
                 doc.setFont(undefined, 'bold');
                 doc.text(`Rapport Nr. ${rapportNr}`, 15, 40);
-                
+
                 // Projektnummer & Baustelle
-                const projektnummer = document.getElementById('projektnummer').value;
-                const baustelle = document.getElementById('baustelle').value;
+                const projektnummerEl = document.getElementById('projektnummer');
+                const baustelleEl = document.getElementById('baustelle');
+                const projektnummer = projektnummerEl ? projektnummerEl.value : '';
+                const baustelle = baustelleEl ? baustelleEl.value : '';
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
                 let yPos = 48;
@@ -7255,13 +7330,14 @@ ${rawText}`;
                 }
                 
                 // Datum
-                const datum = document.getElementById('datum').value;
-                doc.text(`Datum: ${new Date(datum).toLocaleDateString('de-DE')}`, 15, yPos);
+                const datumEl = document.getElementById('datum');
+                const datum = datumEl ? datumEl.value : '';
+                doc.text(`Datum: ${datum ? new Date(datum).toLocaleDateString('de-DE') : '-'}`, 15, yPos);
                 yPos += 10;
                 
                 // Content
                 const tbody = document.getElementById('taetigkeitenTable');
-                const rows = tbody.querySelectorAll('tr');
+                const rows = tbody ? tbody.querySelectorAll('tr') : [];
                 
                 if (rows.length > 0) {
                     doc.setFontSize(11);
@@ -7356,10 +7432,15 @@ ${rawText}`;
                 return false;
             }
 
-            const rapportNr = document.getElementById('rapportNummer').textContent;
-            const datum = document.getElementById('datum').value;
-            const projektnummer = document.getElementById('projektnummer').value;
-            const baustelle = document.getElementById('baustelle').value;
+            const rapportNrEl = document.getElementById('rapportNummer');
+            const datumEl = document.getElementById('datum');
+            const projektnummerEl = document.getElementById('projektnummer');
+            const baustelleEl = document.getElementById('baustelle');
+
+            const rapportNr = rapportNrEl ? rapportNrEl.textContent : '';
+            const datum = datumEl ? datumEl.value : '';
+            const projektnummer = projektnummerEl ? projektnummerEl.value : '';
+            const baustelle = baustelleEl ? baustelleEl.value : '';
             
             // Header - KOMPAKT (v1.14)
             doc.setFillColor(220, 38, 38);
@@ -7421,7 +7502,8 @@ ${rawText}`;
             if (hasTaetigkeiten) yPos += 3;
             
             // Material
-            const material = document.getElementById('materialText').value.trim();
+            const materialTextEl = document.getElementById('materialText');
+            const material = materialTextEl ? materialTextEl.value.trim() : '';
             if (material) {
                 checkPageBreak();
                 doc.setFontSize(11);
@@ -7441,7 +7523,8 @@ ${rawText}`;
             }
             
             // Maschinen
-            const maschinen = document.getElementById('maschinenText').value.trim();
+            const maschinenTextEl = document.getElementById('maschinenText');
+            const maschinen = maschinenTextEl ? maschinenTextEl.value.trim() : '';
             if (maschinen) {
                 checkPageBreak();
                 doc.setFontSize(11);
@@ -7497,8 +7580,10 @@ ${rawText}`;
             }
             
             // GPS
-            const gpsLat = document.getElementById('gpsLat').value;
-            const gpsLon = document.getElementById('gpsLon').value;
+            const gpsLatEl = document.getElementById('gpsLat');
+            const gpsLonEl = document.getElementById('gpsLon');
+            const gpsLat = gpsLatEl ? gpsLatEl.value : '';
+            const gpsLon = gpsLonEl ? gpsLonEl.value : '';
             if (gpsLat && gpsLon) {
                 checkPageBreak();
                 doc.setFontSize(9);
@@ -8000,7 +8085,8 @@ ${rawText}`;
                 
                 // Prüfe ob HTTPS/localhost
                 if (!browserCaps.features.isSecureContext) {
-                    document.getElementById('httpsWarning').style.display = 'block';
+                    const httpsWarning = document.getElementById('httpsWarning');
+                    if (httpsWarning) httpsWarning.style.display = 'block';
                 }
                 
                 modal.style.display = 'flex';
@@ -8152,24 +8238,30 @@ ${rawText}`;
         
         function showSetupModal() {
             const modal = document.getElementById('setupModal');
-            modal.classList.remove('hidden');
-            
+            if (modal) modal.classList.remove('hidden');
+
             // Zeige aktuelle URL
-            document.getElementById('setupCurrentUrl').textContent = 
-                `Aktuelle URL: ${window.location.protocol}//${window.location.host}`;
-            
+            const setupCurrentUrl = document.getElementById('setupCurrentUrl');
+            if (setupCurrentUrl) {
+                setupCurrentUrl.textContent = `Aktuelle URL: ${window.location.protocol}//${window.location.host}`;
+            }
+
             // Erkenne lokale IP
             detectLocalIP();
         }
         
         function minimizeSetup() {
-            document.getElementById('setupModal').classList.add('hidden');
-            document.getElementById('setupReopenBtn').classList.remove('hidden');
+            const modal = document.getElementById('setupModal');
+            const reopenBtn = document.getElementById('setupReopenBtn');
+            if (modal) modal.classList.add('hidden');
+            if (reopenBtn) reopenBtn.classList.remove('hidden');
         }
-        
+
         function reopenSetup() {
-            document.getElementById('setupModal').classList.remove('hidden');
-            document.getElementById('setupReopenBtn').classList.add('hidden');
+            const modal = document.getElementById('setupModal');
+            const reopenBtn = document.getElementById('setupReopenBtn');
+            if (modal) modal.classList.remove('hidden');
+            if (reopenBtn) reopenBtn.classList.add('hidden');
         }
         
         function showSetupTab(tabName) {
@@ -8180,10 +8272,11 @@ ${rawText}`;
             document.querySelectorAll('.setup-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
-            
+
             // Aktiven Tab aktivieren
             event.target.classList.add('active');
-            document.getElementById('setup-' + tabName).classList.add('active');
+            const tabContent = document.getElementById('setup-' + tabName);
+            if (tabContent) tabContent.classList.add('active');
         }
         
         async function detectLocalIP() {
@@ -8227,31 +8320,34 @@ ${rawText}`;
         
         function updateIPDisplay(ip) {
             // Aktualisiere alle IP-Anzeigen
-            document.getElementById('detectedIP').textContent = ip;
-            if (document.getElementById('detectedIP-mac')) {
-                document.getElementById('detectedIP-mac').textContent = ip;
-            }
-            if (document.getElementById('detectedIP-linux')) {
-                document.getElementById('detectedIP-linux').textContent = ip;
-            }
-            
+            const detectedIPEl = document.getElementById('detectedIP');
+            const detectedIPMacEl = document.getElementById('detectedIP-mac');
+            const detectedIPLinuxEl = document.getElementById('detectedIP-linux');
+
+            if (detectedIPEl) detectedIPEl.textContent = ip;
+            if (detectedIPMacEl) detectedIPMacEl.textContent = ip;
+            if (detectedIPLinuxEl) detectedIPLinuxEl.textContent = ip;
+
             // Aktualisiere mkcert-Befehle
             const mkcertCmd = `mkcert localhost ${ip} 127.0.0.1 ::1`;
-            document.getElementById('mkcertCommand').innerHTML = 
-                mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
-            
-            if (document.getElementById('mkcertCommandMac')) {
-                document.getElementById('mkcertCommandMac').innerHTML = 
-                    mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
+            const mkcertCommandEl = document.getElementById('mkcertCommand');
+            const mkcertCommandMacEl = document.getElementById('mkcertCommandMac');
+            const mkcertCommandLinuxEl = document.getElementById('mkcertCommandLinux');
+
+            if (mkcertCommandEl) {
+                mkcertCommandEl.innerHTML = mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
             }
-            if (document.getElementById('mkcertCommandLinux')) {
-                document.getElementById('mkcertCommandLinux').innerHTML = 
-                    mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
+            if (mkcertCommandMacEl) {
+                mkcertCommandMacEl.innerHTML = mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
             }
-            
+            if (mkcertCommandLinuxEl) {
+                mkcertCommandLinuxEl.innerHTML = mkcertCmd + `<button class="setup-copy-btn" onclick="copyToClipboard(this, '${mkcertCmd}')">📋 Kopieren</button>`;
+            }
+
             // Aktualisiere Android-URL
             const androidUrl = `https://${ip}:8000/baustellenbericht_v1_10.html`;
-            document.getElementById('androidURL').textContent = androidUrl;
+            const androidURLEl = document.getElementById('androidURL');
+            if (androidURLEl) androidURLEl.textContent = androidUrl;
         }
         
         async function copyToClipboard(button, text) {
@@ -9158,8 +9254,10 @@ brew install mkcert</div>
             const h = Math.floor(stoppuhrSeconds / 3600);
             const m = Math.floor((stoppuhrSeconds % 3600) / 60);
             const s = stoppuhrSeconds % 60;
-            document.getElementById('stoppuhrDisplay').textContent = 
-                `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            const displayEl = document.getElementById('stoppuhrDisplay');
+            if (displayEl) {
+                displayEl.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
         }
         
         function resetStoppuhr() {
@@ -9283,19 +9381,22 @@ brew install mkcert</div>
                 // Hier könnten die Werte in die Felder übernommen werden
             }
             
-            document.getElementById('vorlageSelect').value = '';
+            const vorlageSelectEl = document.getElementById('vorlageSelect');
+            if (vorlageSelectEl) vorlageSelectEl.value = '';
         }
-        
+
         // Projekte verwalten
         function addProjekt() {
-            const name = document.getElementById('newProjektName')?.value?.trim();
-            const nr = document.getElementById('newProjektNr')?.value?.trim();
-            
+            const nameEl = document.getElementById('newProjektName');
+            const nrEl = document.getElementById('newProjektNr');
+            const name = nameEl ? nameEl.value.trim() : '';
+            const nr = nrEl ? nrEl.value.trim() : '';
+
             if (!name) {
                 showToast('❌ Bitte Projektname eingeben', 'error');
                 return;
             }
-            
+
             const projekte = JSON.parse(localStorage.getItem('projekte') || '[]');
             projekte.push({
                 id: Date.now(),
@@ -9305,10 +9406,10 @@ brew install mkcert</div>
                 aktiv: true
             });
             localStorage.setItem('projekte', JSON.stringify(projekte));
-            
-            document.getElementById('newProjektName').value = '';
-            document.getElementById('newProjektNr').value = '';
-            
+
+            if (nameEl) nameEl.value = '';
+            if (nrEl) nrEl.value = '';
+
             loadProjekte();
             showToast(`✅ Projekt "${name}" angelegt!`, 'success');
         }
@@ -9342,8 +9443,10 @@ brew install mkcert</div>
             const projekte = JSON.parse(localStorage.getItem('projekte') || '[]');
             const projekt = projekte.find(p => p.id == id);
             if (projekt) {
-                document.getElementById('projektnummerHelper').value = projekt.nr;
-                document.getElementById('baustelleHelper').value = projekt.name;
+                const projektnummerHelperEl = document.getElementById('projektnummerHelper');
+                const baustelleHelperEl = document.getElementById('baustelleHelper');
+                if (projektnummerHelperEl) projektnummerHelperEl.value = projekt.nr;
+                if (baustelleHelperEl) baustelleHelperEl.value = projekt.name;
                 switchToTab('neu');
                 showToast(`📁 Projekt "${projekt.name}" ausgewählt`, 'success');
             }
@@ -9398,10 +9501,15 @@ brew install mkcert</div>
             });
             
             // UI aktualisieren
-            document.getElementById('statStunden').textContent = totalStunden.toFixed(1);
-            document.getElementById('statBerichte').textContent = filtered.length;
-            document.getElementById('statProjekte').textContent = baustellen.size;
-            document.getElementById('statKm').textContent = totalKm.toFixed(0);
+            const statStundenEl = document.getElementById('statStunden');
+            const statBerichteEl = document.getElementById('statBerichte');
+            const statProjekteEl = document.getElementById('statProjekte');
+            const statKmEl = document.getElementById('statKm');
+
+            if (statStundenEl) statStundenEl.textContent = totalStunden.toFixed(1);
+            if (statBerichteEl) statBerichteEl.textContent = filtered.length;
+            if (statProjekteEl) statProjekteEl.textContent = baustellen.size;
+            if (statKmEl) statKmEl.textContent = totalKm.toFixed(0);
             
             // Top Baustellen
             const baustellenStats = {};
@@ -9438,9 +9546,10 @@ brew install mkcert</div>
             const month = currentKalenderDate.getMonth();
             
             // Monat-Anzeige aktualisieren
-            const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 
+            const monthNames = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
                                'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-            document.getElementById('kalenderMonat').textContent = `${monthNames[month]} ${year}`;
+            const kalenderMonatEl = document.getElementById('kalenderMonat');
+            if (kalenderMonatEl) kalenderMonatEl.textContent = `${monthNames[month]} ${year}`;
             
             // Berichte für diesen Monat holen
             const berichte = JSON.parse(localStorage.getItem('baustellenberichte') || '[]');
@@ -10911,8 +11020,10 @@ brew install mkcert</div>
 
                 if (result && result.text) {
                     aktuellerKIVorschlag = result.text;
-                    document.getElementById('kiVorschlagText').textContent = result.text;
-                    document.getElementById('kiVorschlagSource').textContent = `via ${result.source}`;
+                    const kiVorschlagTextEl = document.getElementById('kiVorschlagText');
+                    const kiVorschlagSourceEl = document.getElementById('kiVorschlagSource');
+                    if (kiVorschlagTextEl) kiVorschlagTextEl.textContent = result.text;
+                    if (kiVorschlagSourceEl) kiVorschlagSourceEl.textContent = `via ${result.source}`;
                     if (kiLaden) kiLaden.style.display = 'none';
                     if (kiVorschlag) kiVorschlag.style.display = 'block';
                     showToast(`✨ KI-Vorschlag via ${result.source}`, 'success');
@@ -10988,7 +11099,9 @@ brew install mkcert</div>
             
             if (typ === 'taetigkeit') {
                 const tbody = document.getElementById('taetigkeitenTable');
-                const datum = document.getElementById('datum').value;
+                const datumEl = document.getElementById('datum');
+                const datum = datumEl ? datumEl.value : '';
+                if (!tbody) return;
                 const newRow = tbody.insertRow();
                 newRow.className = 'editable-row';
                 const stundenText = stunden ? stunden + ' Std' : '';
@@ -11025,8 +11138,8 @@ brew install mkcert</div>
             // Rapport-Nummer setzen
             const savedBerichte = JSON.parse(localStorage.getItem('baustellenberichte') || '[]');
             const nextNr = savedBerichte.length + 1;
-            const rapportInput = document.getElementById('rapportNr');
-            if (rapportInput) rapportInput.value = nextNr.toString().padStart(4, '0');
+            const rapportSpan = document.getElementById('rapportNummer');
+            if (rapportSpan) rapportSpan.textContent = nextNr.toString().padStart(5, '0');
             
             // Gespeicherte Berichte laden
             loadBerichte();
