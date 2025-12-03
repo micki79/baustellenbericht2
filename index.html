@@ -238,6 +238,22 @@
         .pos-col { width: 50px; }
         .datum-col { width: 100px; }
         .taetig-col { min-width: 250px; }
+        .std-col {
+            width: 60px;
+            min-width: 60px;
+            text-align: center;
+            background: #f8fafc;
+        }
+        .std-cell {
+            text-align: center;
+            font-weight: 600;
+            color: #667eea;
+            background: #f8fafc;
+        }
+        .std-cell:focus {
+            background: #fff;
+            outline: 2px solid #667eea;
+        }
 
         /* Textarea für Tätigkeiten - mehrzeilige Eingabe */
         .taetigkeit-textarea {
@@ -2458,24 +2474,9 @@
             <div class="helper-section">
                 <h4>🔨 Tätigkeiten hinzufügen</h4>
                 <label>Position:</label>
-                <input type="text" id="taetigkeitPosition" placeholder="z.B. 1 oder 1.1" style="width: 100px;">
-                <label>Menge:</label>
-                <input type="number" id="taetigkeitMenge" placeholder="z.B. 15" min="0" step="0.1" style="width: 100px;">
-                <label>Einheit:</label>
-                <select id="taetigkeitEinheit" style="width: 120px;">
-                    <option value="">--</option>
-                    <option value="Kartons">Kartons</option>
-                    <option value="Pakete">Pakete</option>
-                    <option value="Stück">Stück</option>
-                    <option value="m²">m²</option>
-                    <option value="Laufmeter">Laufmeter</option>
-                    <option value="kg">kg</option>
-                    <option value="Liter">Liter</option>
-                    <option value="Sack">Sack</option>
-                    <option value="Eimer">Eimer</option>
-                    <option value="Stunden">Stunden</option>
-                    <option value="Pauschal">Pauschal</option>
-                </select>
+                <input type="text" id="taetigkeitPosition" placeholder="z.B. 1 oder 1.1" style="width: 80px;">
+                <label>Stunden:</label>
+                <input type="number" id="taetigkeitStunden" placeholder="z.B. 8" min="0" step="0.5" style="width: 80px;">
                 <label>Kategorie wählen:</label>
                 <select id="taetigkeitHaupt" onchange="showTaetigkeiten()">
                     <option value="">-- Bitte wählen --</option>
@@ -2762,15 +2763,14 @@
                 </div>
             </div>
 
-            <!-- HAUPTTABELLE -->
+            <!-- HAUPTTABELLE (vereinfacht wie Original) -->
             <table class="rapport-table">
                 <thead>
                     <tr>
                         <th class="pos-col">Pos.</th>
                         <th class="datum-col">Datum</th>
                         <th class="taetig-col">Tätigkeit</th>
-                        <th style="width: 60px;">Menge</th>
-                        <th style="width: 80px;">Einheit</th>
+                        <th class="std-col">Std.</th>
                     </tr>
                 </thead>
                 <tbody id="taetigkeitenTable">
@@ -5164,6 +5164,14 @@ ${rawText}`;
                     ? taetigkeitenRowCounter.toString()
                     : (tbody.rows.length + 1).toString();
 
+                // Versuche Stunden zu extrahieren (z.B. "8h", "8 Std", "2.5h")
+                let stunden = '';
+                const stundenMatch = cleanLine.match(/(\d+(?:[.,]\d+)?)\s*(h|std|stunden?)\b/i);
+                if (stundenMatch) {
+                    stunden = stundenMatch[1].replace(',', '.');
+                    cleanLine = cleanLine.replace(stundenMatch[0], '').trim();
+                }
+
                 // Neue Zeile mit Textarea für Tätigkeit erstellen (XSS-sicher)
                 const row = document.createElement('tr');
                 row.className = 'editable-row';
@@ -5171,8 +5179,7 @@ ${rawText}`;
                     <td contenteditable="true">${escapeHtml(position)}</td>
                     <td>${escapeHtml(datum)}</td>
                     <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(cleanLine)}</textarea></td>
-                    <td contenteditable="true">${escapeHtml(menge)}</td>
-                    <td contenteditable="true">${escapeHtml(einheit)}</td>
+                    <td contenteditable="true" class="std-cell">${escapeHtml(stunden)}</td>
                 `;
                 tbody.appendChild(row);
 
@@ -5284,13 +5291,13 @@ ${rawText}`;
 
                     data.taetigkeiten.forEach((t, i) => {
                         const row = tbody.insertRow();
+                        row.className = 'editable-row';
                         const today = new Date().toLocaleDateString('de-DE');
                         row.innerHTML = `
-                            <td>${t.position || (i + 1)}</td>
-                            <td>${today}</td>
-                            <td><textarea style="width:100%;min-height:60px;border:1px solid #ddd;border-radius:4px;padding:8px;">${t.beschreibung || ''}</textarea></td>
-                            <td contenteditable="true">${t.menge ? t.menge + ' ' + (t.einheit || '') : ''}</td>
-                            <td contenteditable="true"></td>
+                            <td contenteditable="true">${escapeHtml(String(t.position || (i + 1)))}</td>
+                            <td>${escapeHtml(today)}</td>
+                            <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(t.beschreibung || '')}</textarea></td>
+                            <td contenteditable="true" class="std-cell">${escapeHtml(t.stunden || '')}</td>
                         `;
                     });
                 }
@@ -6211,13 +6218,11 @@ ${rawText}`;
 
             const datumEl = document.getElementById('datum');
             const positionEl = document.getElementById('taetigkeitPosition');
-            const mengeEl = document.getElementById('taetigkeitMenge');
-            const einheitEl = document.getElementById('taetigkeitEinheit');
+            const stundenEl = document.getElementById('taetigkeitStunden');
 
             const datum = datumEl ? datumEl.value : '';
             let position = positionEl ? positionEl.value.trim() : '';
-            const menge = mengeEl ? mengeEl.value.trim() : '';
-            const einheit = einheitEl ? einheitEl.value : '';
+            const stunden = stundenEl ? stundenEl.value.trim() : '';
 
             // Wenn keine Position eingegeben, automatisch hochzählen
             if (!position) {
@@ -6231,8 +6236,7 @@ ${rawText}`;
                     <td contenteditable="true">${escapeHtml(position)}</td>
                     <td>${escapeHtml(datum)}</td>
                     <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(taetigkeit)}</textarea></td>
-                    <td contenteditable="true">${escapeHtml(menge)}</td>
-                    <td contenteditable="true">${escapeHtml(einheit)}</td>
+                    <td contenteditable="true" class="std-cell">${escapeHtml(stunden)}</td>
                 `;
                 tbody.appendChild(row);
                 
@@ -6248,13 +6252,11 @@ ${rawText}`;
             const tChips = document.getElementById('taetigkeitenChips');
             const tHaupt = document.getElementById('taetigkeitHaupt');
             const tPosition = document.getElementById('taetigkeitPosition');
-            const tMenge = document.getElementById('taetigkeitMenge');
-            const tEinheit = document.getElementById('taetigkeitEinheit');
+            const tStunden = document.getElementById('taetigkeitStunden');
             if (tChips) tChips.innerHTML = '';
             if (tHaupt) tHaupt.value = '';
             if (tPosition) tPosition.value = '';
-            if (tMenge) tMenge.value = '';
-            if (tEinheit) tEinheit.value = '';
+            if (tStunden) tStunden.value = '';
 
             showToast('Tätigkeiten zur Tabelle hinzugefügt', 'success');
         }
@@ -11158,8 +11160,7 @@ brew install mkcert</div>
                     <td contenteditable="true">${escapeHtml(taetigkeitenRowCounter.toString())}</td>
                     <td>${escapeHtml(datum)}</td>
                     <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(text)}</textarea></td>
-                    <td contenteditable="true">${escapeHtml(stundenText)}</td>
-                    <td contenteditable="true"></td>
+                    <td contenteditable="true" class="std-cell">${stunden ? escapeHtml(stunden) : ''}</td>
                 `;
                 
                 taetigkeitenRowCounter++;
