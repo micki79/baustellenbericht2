@@ -2112,6 +2112,54 @@
                     <div id="agentPreview" style="font-size: 13px; opacity: 0.8; margin-top: 8px; font-style: italic;"></div>
                 </div>
 
+                <!-- FEEDBACK-SYSTEM FÜR KI-LERNEN -->
+                <div id="feedbackSection" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.95); border-radius: 12px; color: #333;">
+                    <div style="font-weight: bold; margin-bottom: 10px; color: #475569;">
+                        🎯 War die KI-Erkennung korrekt?
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button onclick="submitFeedback('correct')"
+                                style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 20px;">👍</span>
+                            <span>Ja, perfekt!</span>
+                        </button>
+                        <button onclick="submitFeedback('corrected')"
+                                style="flex: 1; padding: 12px; background: #f59e0b; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <span style="font-size: 20px;">✏️</span>
+                            <span>Musste korrigieren</span>
+                        </button>
+                    </div>
+                    <div id="feedbackDetails" style="display: none;">
+                        <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Was war falsch? (optional)</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" id="fbName" style="margin: 0;"> Namen
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" id="fbMenge" style="margin: 0;"> Mengen
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" id="fbBaustelle" style="margin: 0;"> Baustelle
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" id="fbStunden" style="margin: 0;"> Stunden
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; background: #f1f5f9; padding: 6px 10px; border-radius: 6px; cursor: pointer;">
+                                <input type="checkbox" id="fbSonstig" style="margin: 0;"> Sonstiges
+                            </label>
+                        </div>
+                        <textarea id="feedbackNote" placeholder="Optional: Beschreibe den Fehler kurz..."
+                                  style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 12px; resize: none; height: 60px;"></textarea>
+                        <button onclick="saveFeedbackWithDetails()"
+                                style="width: 100%; margin-top: 10px; padding: 10px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                            💾 Feedback speichern & KI verbessern
+                        </button>
+                    </div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 8px; text-align: center;">
+                        Dein Feedback hilft der KI zu lernen! 🧠
+                    </div>
+                </div>
+
                 <!-- FOTO-UPLOAD IM AGENT-BEREICH -->
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.3);">
                     <input type="file" id="agentPhotoInput" accept="image/*" capture="environment" multiple style="display: none;" onchange="handleAgentPhotos(event)">
@@ -2141,6 +2189,21 @@
                     <span id="wbMitarbeiterCount">0</span> Mitarbeiter •
                     <span id="wbKundenCount">0</span> Kunden •
                     <span id="wbBerichteCount">0</span> gelernte Berichte
+                </div>
+
+                <!-- KI-LERN-STATISTIK -->
+                <div id="kiStatsSection" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; color: #475569; font-weight: 600;">🧠 KI-Lernfortschritt</span>
+                        <button onclick="showKIStats()" style="background: none; border: none; cursor: pointer; font-size: 11px; color: #667eea;">📊 Details</button>
+                    </div>
+                    <div style="background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden;">
+                        <div id="kiAccuracyBar" style="background: linear-gradient(90deg, #10b981, #34d399); height: 100%; width: 0%; transition: width 0.5s;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: #64748b;">
+                        <span>Genauigkeit: <strong id="kiAccuracyPercent">--%</strong></span>
+                        <span><span id="kiFeedbackCount">0</span> Bewertungen</span>
+                    </div>
                 </div>
             </div>
 
@@ -3090,6 +3153,8 @@
             checkKIStatus();
             // Wissensbasis-Zähler aktualisieren
             updateWissensbasisCounts();
+            // KI-Lernstatistik aktualisieren
+            updateKIStats();
             
             const today = new Date();
             document.getElementById('datum').valueAsDate = today;
@@ -3513,9 +3578,15 @@ Text: ${prompt}`
                     // Aus dem Bericht lernen
                     saveToWissensbasis(text, result);
 
+                    // Für Feedback speichern
+                    window.lastAgentInput = text;
+                    window.lastAgentResult = result;
+
+                    // Feedback-Section anzeigen
                     setTimeout(() => {
                         status.style.display = 'none';
-                    }, 3000);
+                        showFeedbackSection();
+                    }, 1500);
                 }
             } catch (e) {
                 console.error('Agent error:', e);
@@ -3524,9 +3595,219 @@ Text: ${prompt}`
             }
         }
 
+        // ===== FEEDBACK-SYSTEM FÜR KI-LERNEN =====
+
+        // Feedback-Section anzeigen
+        function showFeedbackSection() {
+            const section = document.getElementById('feedbackSection');
+            const details = document.getElementById('feedbackDetails');
+            if (section) {
+                section.style.display = 'block';
+                details.style.display = 'none';
+                // Checkboxen zurücksetzen
+                ['fbName', 'fbMenge', 'fbBaustelle', 'fbStunden', 'fbSonstig'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = false;
+                });
+                const noteEl = document.getElementById('feedbackNote');
+                if (noteEl) noteEl.value = '';
+            }
+        }
+
+        // Feedback absenden
+        function submitFeedback(type) {
+            if (type === 'correct') {
+                // Direkt als korrekt speichern
+                saveFeedbackData({
+                    type: 'correct',
+                    timestamp: new Date().toISOString(),
+                    input: window.lastAgentInput,
+                    aiResult: window.lastAgentResult,
+                    errors: [],
+                    note: ''
+                });
+                document.getElementById('feedbackSection').style.display = 'none';
+                showToast('👍 Danke! KI lernt aus korrekten Beispielen.', 'success');
+                updateKIStats();
+            } else {
+                // Details-Bereich anzeigen
+                document.getElementById('feedbackDetails').style.display = 'block';
+            }
+        }
+
+        // Feedback mit Details speichern
+        function saveFeedbackWithDetails() {
+            const errors = [];
+            if (document.getElementById('fbName')?.checked) errors.push('namen');
+            if (document.getElementById('fbMenge')?.checked) errors.push('mengen');
+            if (document.getElementById('fbBaustelle')?.checked) errors.push('baustelle');
+            if (document.getElementById('fbStunden')?.checked) errors.push('stunden');
+            if (document.getElementById('fbSonstig')?.checked) errors.push('sonstiges');
+
+            const note = document.getElementById('feedbackNote')?.value || '';
+
+            // Aktuelle Formular-Werte als Korrektur erfassen
+            const correctedData = getCurrentFormData();
+
+            saveFeedbackData({
+                type: 'corrected',
+                timestamp: new Date().toISOString(),
+                input: window.lastAgentInput,
+                aiResult: window.lastAgentResult,
+                correctedResult: correctedData,
+                errors: errors,
+                note: note
+            });
+
+            document.getElementById('feedbackSection').style.display = 'none';
+            showToast('✏️ Danke! KI lernt aus deiner Korrektur.', 'success');
+            updateKIStats();
+
+            // Aus Korrektur lernen
+            learnFromCorrection(window.lastAgentInput, window.lastAgentResult, correctedData, errors);
+        }
+
+        // Aktuelle Formulardaten erfassen
+        function getCurrentFormData() {
+            const taetigkeiten = [];
+            const tbody = document.getElementById('taetigkeitenTable');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach((row, i) => {
+                    const cells = row.querySelectorAll('td');
+                    const textarea = row.querySelector('textarea');
+                    taetigkeiten.push({
+                        position: String(i + 1),
+                        beschreibung: textarea?.value || cells[2]?.textContent || '',
+                        menge: cells[3]?.textContent || ''
+                    });
+                });
+            }
+
+            return {
+                projektnummer: document.getElementById('projektnummer')?.value || '',
+                baustelle: document.getElementById('baustelle')?.value || '',
+                taetigkeiten: taetigkeiten,
+                material: document.getElementById('materialText')?.value || '',
+                notizen: document.getElementById('notizenText')?.value || ''
+            };
+        }
+
+        // Feedback in LocalStorage speichern
+        function saveFeedbackData(data) {
+            let feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+            feedbacks.push(data);
+            // Maximal 200 Feedbacks speichern
+            if (feedbacks.length > 200) feedbacks = feedbacks.slice(-200);
+            localStorage.setItem('kiFeedback', JSON.stringify(feedbacks));
+        }
+
+        // Aus Korrektur lernen
+        function learnFromCorrection(input, aiResult, correctedResult, errorTypes) {
+            // Wenn Namen falsch waren, versuche korrigierte Namen zu extrahieren
+            if (errorTypes.includes('namen') && correctedResult.baustelle) {
+                // Extrahiere mögliche Kundennamen aus korrigierter Baustelle
+                const wb = getWissensbasis();
+                const baustelleName = correctedResult.baustelle.split(/[,\s-]/)[0].trim();
+                if (baustelleName && baustelleName.length > 2 && !wb.kunden.includes(baustelleName)) {
+                    wb.kunden.push(baustelleName);
+                    localStorage.setItem('firmenKunden', JSON.stringify(wb.kunden));
+                    console.log('🧠 Neuer Kunde gelernt:', baustelleName);
+                }
+            }
+
+            // Speichere als Lern-Beispiel
+            let corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
+            corrections.push({
+                input: input,
+                wrong: aiResult,
+                correct: correctedResult,
+                errorTypes: errorTypes,
+                timestamp: new Date().toISOString()
+            });
+            // Maximal 50 Korrekturen für Prompt-Verbesserung
+            if (corrections.length > 50) corrections = corrections.slice(-50);
+            localStorage.setItem('kiCorrections', JSON.stringify(corrections));
+        }
+
+        // KI-Statistiken aktualisieren
+        function updateKIStats() {
+            const feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+            const total = feedbacks.length;
+            const correct = feedbacks.filter(f => f.type === 'correct').length;
+
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            const barEl = document.getElementById('kiAccuracyBar');
+            const percentEl = document.getElementById('kiAccuracyPercent');
+            const countEl = document.getElementById('kiFeedbackCount');
+
+            if (barEl) barEl.style.width = accuracy + '%';
+            if (percentEl) percentEl.textContent = total > 0 ? accuracy + '%' : '--%';
+            if (countEl) countEl.textContent = total;
+
+            // Farbe basierend auf Genauigkeit
+            if (barEl) {
+                if (accuracy >= 80) {
+                    barEl.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+                } else if (accuracy >= 60) {
+                    barEl.style.background = 'linear-gradient(90deg, #f59e0b, #fbbf24)';
+                } else {
+                    barEl.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
+                }
+            }
+        }
+
+        // KI-Statistiken Detail-Ansicht
+        function showKIStats() {
+            const feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+            const corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
+
+            const total = feedbacks.length;
+            const correct = feedbacks.filter(f => f.type === 'correct').length;
+            const corrected = feedbacks.filter(f => f.type === 'corrected').length;
+
+            // Fehlertypen zählen
+            const errorCounts = {};
+            feedbacks.filter(f => f.errors).forEach(f => {
+                f.errors.forEach(e => {
+                    errorCounts[e] = (errorCounts[e] || 0) + 1;
+                });
+            });
+
+            let errorList = Object.entries(errorCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => `  • ${type}: ${count}x`)
+                .join('\n') || '  Keine Fehler erfasst';
+
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            alert(`📊 KI-LERNSTATISTIK\n\n` +
+                  `Gesamt-Bewertungen: ${total}\n` +
+                  `✅ Korrekt: ${correct} (${accuracy}%)\n` +
+                  `✏️ Korrigiert: ${corrected}\n\n` +
+                  `Häufigste Fehlertypen:\n${errorList}\n\n` +
+                  `Gespeicherte Korrekturen: ${corrections.length}\n\n` +
+                  `Je mehr Feedback, desto besser wird die KI!`);
+        }
+
+        // Gelernte Korrekturen in Prompt einbauen
+        function getLearnedExamples() {
+            const corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
+            if (corrections.length === 0) return '';
+
+            // Die letzten 3 Korrekturen als Beispiele
+            const examples = corrections.slice(-3).map(c => {
+                return `Eingabe: "${c.input.substring(0, 100)}..."\nKorrektes Ergebnis: Baustelle="${c.correct.baustelle}", Projekt="${c.correct.projektnummer}"`;
+            }).join('\n\n');
+
+            return `\n\nBEISPIELE AUS FRÜHEREN KORREKTUREN:\n${examples}`;
+        }
+
         // Agent-Text mit KI verarbeiten
         async function processAgentText(text) {
             const wb = getWissensbasis();
+            const learnedExamples = getLearnedExamples();
 
             const systemPrompt = `Du bist ein KI-Agent für Fliesenleger-Baustellenberichte.
 Analysiere den gesprochenen Text und extrahiere ALLE relevanten Informationen.
@@ -3535,6 +3816,7 @@ FIRMEN-WISSENSBASIS:
 - Bekannte Mitarbeiter: ${wb.mitarbeiter.join(', ') || 'keine'}
 - Bekannte Kunden/Baustellen: ${wb.kunden.join(', ') || 'keine'}
 - Häufige Materialien: ${wb.materialien.join(', ') || 'Standard-Fliesenmaterial'}
+${learnedExamples}
 
 Antworte NUR mit einem JSON-Objekt in diesem Format (keine anderen Texte!):
 {
