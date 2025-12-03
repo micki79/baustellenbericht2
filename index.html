@@ -237,7 +237,29 @@
         
         .pos-col { width: 50px; }
         .datum-col { width: 100px; }
-        .taetig-col { min-height: 40px; }
+        .taetig-col { min-width: 250px; }
+
+        /* Textarea für Tätigkeiten - mehrzeilige Eingabe */
+        .taetigkeit-textarea {
+            width: 100%;
+            min-height: 50px;
+            max-height: 200px;
+            resize: vertical;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            background: white;
+            font-family: Arial, sans-serif;
+            font-size: 11px;
+            padding: 6px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+        .taetigkeit-textarea:focus {
+            outline: 2px solid #667eea;
+            outline-offset: -1px;
+            border-color: #667eea;
+        }
         
         /* Zeilen für manuelle Eingabe */
         .editable-row td {
@@ -2634,15 +2656,15 @@
                 <div class="rapport-worker-box" style="display: flex; gap: 8px; align-items: flex-end;">
                     <div style="text-align: center;">
                         <div style="font-size: 9px; line-height: 1.2;">Vor-<br>arbeiter</div>
-                        <div style="width: 18px; height: 18px; border: 2px solid #000; background: white; margin: 3px auto 0;"></div>
+                        <input type="checkbox" id="checkVorarbeiter" style="width: 18px; height: 18px; margin: 3px auto 0; display: block; cursor: pointer; accent-color: #dc2626;">
                     </div>
                     <div style="text-align: center;">
                         <div style="font-size: 9px; line-height: 1.2;">Fach-<br>arbeiter</div>
-                        <div style="width: 18px; height: 18px; border: 2px solid #000; background: white; margin: 3px auto 0;"></div>
+                        <input type="checkbox" id="checkFacharbeiter" style="width: 18px; height: 18px; margin: 3px auto 0; display: block; cursor: pointer; accent-color: #dc2626;">
                     </div>
                     <div style="text-align: center;">
                         <div style="font-size: 9px; line-height: 1.2;">Lehrling<br>Helfer</div>
-                        <div style="width: 18px; height: 18px; border: 2px solid #000; background: white; margin: 3px auto 0;"></div>
+                        <input type="checkbox" id="checkLehrling" style="width: 18px; height: 18px; margin: 3px auto 0; display: block; cursor: pointer; accent-color: #dc2626;">
                     </div>
                 </div>
             </div>
@@ -2966,7 +2988,15 @@
         let fahrzeugListe = [];
         let photos = [];
         let taetigkeitenRowCounter = 1;
-        
+
+        // ===== SICHERHEIT: HTML-Escaping für XSS-Schutz =====
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // ===== BROWSER CAPABILITIES (Feature Detection statt Platform Detection) =====
         // v2.0: Erweitert um Capacitor-Erkennung für Native-App
         class BrowserCapabilities {
@@ -5134,15 +5164,15 @@ ${rawText}`;
                     ? taetigkeitenRowCounter.toString()
                     : (tbody.rows.length + 1).toString();
 
-                // Neue Zeile mit contenteditable TDs erstellen (wie im Original-Code)
+                // Neue Zeile mit Textarea für Tätigkeit erstellen (XSS-sicher)
                 const row = document.createElement('tr');
                 row.className = 'editable-row';
                 row.innerHTML = `
-                    <td contenteditable="true">${position}</td>
-                    <td>${datum}</td>
-                    <td contenteditable="true">${cleanLine}</td>
-                    <td contenteditable="true">${menge}</td>
-                    <td contenteditable="true">${einheit}</td>
+                    <td contenteditable="true">${escapeHtml(position)}</td>
+                    <td>${escapeHtml(datum)}</td>
+                    <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(cleanLine)}</textarea></td>
+                    <td contenteditable="true">${escapeHtml(menge)}</td>
+                    <td contenteditable="true">${escapeHtml(einheit)}</td>
                 `;
                 tbody.appendChild(row);
 
@@ -6198,11 +6228,11 @@ ${rawText}`;
                 const row = document.createElement('tr');
                 row.className = 'editable-row';
                 row.innerHTML = `
-                    <td contenteditable="true">${position}</td>
-                    <td>${datum}</td>
-                    <td contenteditable="true">${taetigkeit}</td>
-                    <td contenteditable="true">${menge}</td>
-                    <td contenteditable="true">${einheit}</td>
+                    <td contenteditable="true">${escapeHtml(position)}</td>
+                    <td>${escapeHtml(datum)}</td>
+                    <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(taetigkeit)}</textarea></td>
+                    <td contenteditable="true">${escapeHtml(menge)}</td>
+                    <td contenteditable="true">${escapeHtml(einheit)}</td>
                 `;
                 tbody.appendChild(row);
                 
@@ -6726,6 +6756,11 @@ ${rawText}`;
             const materialEl = document.getElementById('materialText');
             const maschinenEl = document.getElementById('maschinenText');
 
+            // Personal-Checkboxen
+            const vorarbeiterEl = document.getElementById('checkVorarbeiter');
+            const facharbeiterEl = document.getElementById('checkFacharbeiter');
+            const lehrlingEl = document.getElementById('checkLehrling');
+
             const bericht = {
                 rapportNr,
                 datum,
@@ -6736,6 +6771,11 @@ ${rawText}`;
                 material: materialEl ? materialEl.value : '',
                 maschinen: maschinenEl ? maschinenEl.value : '',
                 personal: [...personalListe],
+                personalTypen: {
+                    vorarbeiter: vorarbeiterEl ? vorarbeiterEl.checked : false,
+                    facharbeiter: facharbeiterEl ? facharbeiterEl.checked : false,
+                    lehrling: lehrlingEl ? lehrlingEl.checked : false
+                },
                 fahrzeuge: [...fahrzeugListe],
                 photos: [...photos],
                 signature1,
@@ -6787,6 +6827,14 @@ ${rawText}`;
 
             clearSignature('signaturePad1');
             clearSignature('signaturePad2');
+
+            // Reset Personal-Checkboxen
+            const vorarbeiterEl = document.getElementById('checkVorarbeiter');
+            const facharbeiterEl = document.getElementById('checkFacharbeiter');
+            const lehrlingEl = document.getElementById('checkLehrling');
+            if (vorarbeiterEl) vorarbeiterEl.checked = false;
+            if (facharbeiterEl) facharbeiterEl.checked = false;
+            if (lehrlingEl) lehrlingEl.checked = false;
 
             const tChipsEl = document.getElementById('taetigkeitenChips');
             const mChipsEl = document.getElementById('materialChips');
@@ -11107,10 +11155,10 @@ brew install mkcert</div>
                 const stundenText = stunden ? stunden + ' Std' : '';
                 
                 newRow.innerHTML = `
-                    <td contenteditable="true">${taetigkeitenRowCounter}</td>
-                    <td>${datum}</td>
-                    <td contenteditable="true">${text}</td>
-                    <td contenteditable="true">${stundenText}</td>
+                    <td contenteditable="true">${escapeHtml(taetigkeitenRowCounter.toString())}</td>
+                    <td>${escapeHtml(datum)}</td>
+                    <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(text)}</textarea></td>
+                    <td contenteditable="true">${escapeHtml(stundenText)}</td>
                     <td contenteditable="true"></td>
                 `;
                 
