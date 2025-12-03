@@ -5336,7 +5336,7 @@ ${rawText}`;
                         </div>
                     </div>
                     <div style="padding:12px 20px 20px;display:flex;gap:10px;">
-                        <button onclick="document.getElementById('wissensbasisModal').remove()" style="flex:1;padding:12px;background:#e5e7eb;color:#475569;border:none;border-radius:8px;cursor:pointer;">Abbrechen</button>
+                        <button onclick="document.getElementById('wissensbasisModal')?.remove()" style="flex:1;padding:12px;background:#e5e7eb;color:#475569;border:none;border-radius:8px;cursor:pointer;">Abbrechen</button>
                         <button onclick="saveWissensbasisEdit()" style="flex:1;padding:12px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:bold;cursor:pointer;">💾 Speichern</button>
                     </div>
                 </div>
@@ -5945,7 +5945,8 @@ ${rawText}`;
                     mediaRecorder = null;
                     
                     // Remove indicator
-                    document.getElementById('audioRecordingIndicator').innerHTML = '';
+                    const audioIndicator = document.getElementById('audioRecordingIndicator');
+                    if (audioIndicator) audioIndicator.innerHTML = '';
                     
                     if (recordingTimer) {
                         clearInterval(recordingTimer);
@@ -5981,13 +5982,16 @@ ${rawText}`;
             const minutes = Math.floor(elapsed / 60);
             const seconds = elapsed % 60;
             const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            
-            document.getElementById('audioRecordingIndicator').innerHTML = `
-                <span class="audio-recording-indicator">
-                    <span class="recording-dot"></span>
-                    <span class="recording-time">${timeStr}</span>
-                </span>
-            `;
+
+            const indicator = document.getElementById('audioRecordingIndicator');
+            if (indicator) {
+                indicator.innerHTML = `
+                    <span class="audio-recording-indicator">
+                        <span class="recording-dot"></span>
+                        <span class="recording-time">${timeStr}</span>
+                    </span>
+                `;
+            }
         }
         
         function downloadAudio(blob) {
@@ -6406,7 +6410,7 @@ ${rawText}`;
                         if (confirm('Foto entfernen?')) {
                             const realIndex = photos.length - 4 + index;
                             if (realIndex >= 0) {
-                                photos.splice(realIndex < 0 ? photos.length + index - 4 : photos.indexOf(photo), 1);
+                                photos.splice(realIndex, 1);
                                 updatePhotoGrid();
                                 updateAgentPhotoPreview();
                             }
@@ -7242,7 +7246,7 @@ ${rawText}`;
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                showToast('⬛‡️ PDF wird heruntergeladen', 'success');
+                showToast('📥 PDF wird heruntergeladen', 'success');
                 
             } catch (error) {
                 console.error('WhatsApp Share Error:', error);
@@ -7260,9 +7264,19 @@ ${rawText}`;
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // v1.14: KOMPAKTES 1-SEITEN-PDF - checkPageBreak() ENTFERNT!
-            // Alle Inhalte passen auf 1 Seite durch kleinere Schriften & Abstände
-            
+            // v1.14: KOMPAKTES 1-SEITEN-PDF
+            let yPos = 71; // Start-Y-Position
+
+            // Hilfsfunktion für automatischen Seitenumbruch (falls nötig)
+            function checkPageBreak() {
+                if (yPos > 270) {
+                    doc.addPage();
+                    yPos = 20;
+                    return true;
+                }
+                return false;
+            }
+
             const rapportNr = document.getElementById('rapportNummer').textContent;
             const datum = document.getElementById('datum').value;
             const projektnummer = document.getElementById('projektnummer').value;
@@ -7300,9 +7314,7 @@ ${rawText}`;
             
             doc.text('Datum:', 15, 62);
             doc.text(datum, 40, 62);
-            
-            let yPos = 71;
-            
+
             // Activities
             const tbody = document.getElementById('taetigkeitenTable');
             const rows = tbody.querySelectorAll('tr');
