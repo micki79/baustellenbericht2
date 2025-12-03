@@ -10925,9 +10925,11 @@ brew install mkcert</div>
                 taetigkeitenRowCounter++;
                 showToast(stunden ? `✅ + ${stunden}h übernommen` : '✅ Übernommen', 'success');
             } else if (typ === 'material') {
-                const textarea = document.getElementById('material');
-                textarea.value = textarea.value ? textarea.value + '\n' + text : text;
-                showToast('✅ Material übernommen', 'success');
+                const textarea = document.getElementById('materialText');
+                if (textarea) {
+                    textarea.value = textarea.value ? textarea.value + '\n' + text : text;
+                    showToast('✅ Material übernommen', 'success');
+                }
             }
         }
 
