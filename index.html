@@ -2041,7 +2041,113 @@
             </div>
         </div>
     </div>
-    
+
+    <!-- ANALYTICS DASHBOARD MODAL -->
+    <div id="analyticsDashboardModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.9); z-index:10004; overflow-y:auto; padding:15px;">
+        <div style="max-width:600px; margin:20px auto; background:white; border-radius:16px; overflow:hidden;">
+            <!-- Header -->
+            <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; padding:20px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h2 style="margin:0; font-size:20px;">📊 Analytics Dashboard</h2>
+                    <p style="margin:5px 0 0; opacity:0.9; font-size:12px;">KI-Lernfortschritt & Team-Statistiken</p>
+                </div>
+                <button onclick="closeAnalyticsDashboard()" style="background:rgba(255,255,255,0.2); border:none; color:white; width:36px; height:36px; border-radius:50%; font-size:20px; cursor:pointer;">×</button>
+            </div>
+
+            <!-- KI-Genauigkeit -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">🎯 KI-Genauigkeit</h3>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <div id="dashAccuracyCircle" style="width:80px; height:80px; border-radius:50%; background:conic-gradient(#10b981 0%, #e2e8f0 0%); display:flex; align-items:center; justify-content:center;">
+                        <div style="width:60px; height:60px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold;" id="dashAccuracyPercent">--%</div>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                            <span style="color:#10b981; font-size:14px;">✅ Korrekt</span>
+                            <span style="font-weight:bold;" id="dashCorrectCount">0</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:#f59e0b; font-size:14px;">✏️ Korrigiert</span>
+                            <span style="font-weight:bold;" id="dashCorrectedCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fehlertypen -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">⚠️ Häufigste Fehler</h3>
+                <div id="dashErrorTypes" style="display:flex; flex-direction:column; gap:8px;">
+                    <!-- Dynamisch gefüllt -->
+                </div>
+            </div>
+
+            <!-- Wissensbasis -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">📚 Wissensbasis</h3>
+                <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;">
+                    <div style="background:#f0fdf4; padding:15px; border-radius:10px; text-align:center;">
+                        <div style="font-size:24px; font-weight:bold; color:#10b981;" id="dashMitarbeiter">0</div>
+                        <div style="font-size:11px; color:#64748b;">Mitarbeiter</div>
+                    </div>
+                    <div style="background:#eff6ff; padding:15px; border-radius:10px; text-align:center;">
+                        <div style="font-size:24px; font-weight:bold; color:#3b82f6;" id="dashKunden">0</div>
+                        <div style="font-size:11px; color:#64748b;">Kunden</div>
+                    </div>
+                    <div style="background:#fef3c7; padding:15px; border-radius:10px; text-align:center;">
+                        <div style="font-size:24px; font-weight:bold; color:#f59e0b;" id="dashBeispiele">0</div>
+                        <div style="font-size:11px; color:#64748b;">Beispiele</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aktivitäts-Timeline -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">📅 Letzte Aktivitäten</h3>
+                <div id="dashTimeline" style="max-height:200px; overflow-y:auto;">
+                    <!-- Dynamisch gefüllt -->
+                </div>
+            </div>
+
+            <!-- Lern-Trend -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">📈 Lern-Trend (letzte 7 Tage)</h3>
+                <div id="dashTrendChart" style="display:flex; align-items:flex-end; gap:4px; height:80px;">
+                    <!-- Dynamisch gefüllt -->
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:10px; color:#94a3b8;">
+                    <span>vor 7 Tagen</span>
+                    <span>heute</span>
+                </div>
+            </div>
+
+            <!-- Cloud-Status -->
+            <div style="padding:20px; border-bottom:1px solid #e2e8f0;">
+                <h3 style="margin:0 0 15px; font-size:16px; color:#475569;">☁️ Team-Sync Status</h3>
+                <div id="dashCloudStatus" style="display:flex; align-items:center; gap:10px; padding:12px; background:#f8fafc; border-radius:8px;">
+                    <span id="dashCloudIcon" style="font-size:24px;">⚪</span>
+                    <div>
+                        <div style="font-weight:600;" id="dashCloudText">Nicht verbunden</div>
+                        <div style="font-size:11px; color:#64748b;" id="dashCloudDetails">Team-Code eingeben um zu verbinden</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aktionen -->
+            <div style="padding:20px; display:flex; gap:10px;">
+                <button onclick="exportAnalytics()" style="flex:1; padding:12px; background:#f1f5f9; color:#475569; border:none; border-radius:8px; cursor:pointer; font-size:13px;">
+                    📥 Export CSV
+                </button>
+                <button onclick="resetAnalytics()" style="flex:1; padding:12px; background:#fef2f2; color:#ef4444; border:none; border-radius:8px; cursor:pointer; font-size:13px;">
+                    🗑️ Daten löschen
+                </button>
+                <button onclick="closeAnalyticsDashboard()" style="flex:1; padding:12px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:bold;">
+                    ✓ Schließen
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- TAB: NEUER BERICHT -->
     <div class="tab-content active" id="tab-neu">
         <!-- HELPER SECTIONS (VOR DEM FORMULAR) -->
@@ -2258,6 +2364,15 @@
                         💡 <strong>Admin?</strong> Erstelle einen Firebase-Account auf <a href="https://console.firebase.google.com" target="_blank" style="color: #1e40af;">firebase.google.com</a> und teile den Team-Code.
                     </div>
                 </div>
+            </div>
+
+            <!-- ANALYTICS DASHBOARD BUTTON -->
+            <div style="margin: 15px 0;">
+                <button onclick="openAnalyticsDashboard()"
+                        style="width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <span style="font-size: 20px;">📊</span>
+                    <span>Analytics Dashboard öffnen</span>
+                </button>
             </div>
 
             <!-- V3.0: VORLAGEN -->
@@ -4139,6 +4254,215 @@ Text: ${prompt}`
                     // syncFromCloud(); // Auskommentiert um Endlos-Loop zu vermeiden
                 }
             });
+        }
+
+        // ===== ANALYTICS DASHBOARD =====
+
+        // Dashboard öffnen
+        function openAnalyticsDashboard() {
+            document.getElementById('analyticsDashboardModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            updateAnalyticsDashboard();
+        }
+
+        // Dashboard schließen
+        function closeAnalyticsDashboard() {
+            document.getElementById('analyticsDashboardModal').style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Dashboard aktualisieren
+        function updateAnalyticsDashboard() {
+            const feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+            const corrections = JSON.parse(localStorage.getItem('kiCorrections') || '[]');
+            const wb = getWissensbasis();
+
+            // Genauigkeit berechnen
+            const total = feedbacks.length;
+            const correct = feedbacks.filter(f => f.type === 'correct').length;
+            const corrected = total - correct;
+            const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            // Genauigkeits-Kreis
+            const circleEl = document.getElementById('dashAccuracyCircle');
+            if (circleEl) {
+                const color = accuracy >= 80 ? '#10b981' : accuracy >= 60 ? '#f59e0b' : '#ef4444';
+                circleEl.style.background = `conic-gradient(${color} ${accuracy}%, #e2e8f0 ${accuracy}%)`;
+            }
+
+            // Zahlen
+            document.getElementById('dashAccuracyPercent').textContent = total > 0 ? accuracy + '%' : '--%';
+            document.getElementById('dashCorrectCount').textContent = correct;
+            document.getElementById('dashCorrectedCount').textContent = corrected;
+
+            // Fehlertypen
+            const errorCounts = {};
+            feedbacks.filter(f => f.errors).forEach(f => {
+                f.errors.forEach(e => {
+                    errorCounts[e] = (errorCounts[e] || 0) + 1;
+                });
+            });
+
+            const errorTypesEl = document.getElementById('dashErrorTypes');
+            const sortedErrors = Object.entries(errorCounts).sort((a, b) => b[1] - a[1]);
+
+            if (sortedErrors.length === 0) {
+                errorTypesEl.innerHTML = '<div style="color:#94a3b8; font-size:13px;">Keine Fehler erfasst - super! 🎉</div>';
+            } else {
+                const maxCount = sortedErrors[0][1];
+                errorTypesEl.innerHTML = sortedErrors.slice(0, 5).map(([type, count]) => {
+                    const percent = Math.round((count / maxCount) * 100);
+                    const labels = {
+                        'namen': '👤 Namen',
+                        'mengen': '📏 Mengen',
+                        'baustelle': '🏗️ Baustelle',
+                        'stunden': '⏰ Stunden',
+                        'sonstiges': '❓ Sonstiges'
+                    };
+                    return `<div style="display:flex; align-items:center; gap:10px;">
+                        <span style="width:80px; font-size:12px;">${labels[type] || type}</span>
+                        <div style="flex:1; background:#e2e8f0; height:8px; border-radius:4px; overflow:hidden;">
+                            <div style="background:#f59e0b; height:100%; width:${percent}%;"></div>
+                        </div>
+                        <span style="font-size:12px; color:#64748b;">${count}x</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Wissensbasis
+            document.getElementById('dashMitarbeiter').textContent = wb.mitarbeiter.length;
+            document.getElementById('dashKunden').textContent = wb.kunden.length;
+            document.getElementById('dashBeispiele').textContent = corrections.length;
+
+            // Timeline
+            const timelineEl = document.getElementById('dashTimeline');
+            const recentFeedbacks = feedbacks.slice(-10).reverse();
+
+            if (recentFeedbacks.length === 0) {
+                timelineEl.innerHTML = '<div style="color:#94a3b8; font-size:13px; text-align:center; padding:20px;">Noch keine Aktivitäten</div>';
+            } else {
+                timelineEl.innerHTML = recentFeedbacks.map(f => {
+                    const date = new Date(f.timestamp);
+                    const timeStr = date.toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                    const icon = f.type === 'correct' ? '✅' : '✏️';
+                    const text = f.type === 'correct' ? 'Korrekt erkannt' : `Korrigiert (${f.errors?.join(', ') || 'unbekannt'})`;
+                    return `<div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                        <span style="font-size:16px;">${icon}</span>
+                        <div style="flex:1;">
+                            <div style="font-size:12px;">${text}</div>
+                            <div style="font-size:10px; color:#94a3b8;">${timeStr}</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            // Trend-Chart (letzte 7 Tage)
+            const trendChartEl = document.getElementById('dashTrendChart');
+            const today = new Date();
+            const days = [];
+
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+
+                const dayFeedbacks = feedbacks.filter(f => f.timestamp?.startsWith(dateStr));
+                const dayCorrect = dayFeedbacks.filter(f => f.type === 'correct').length;
+                const dayTotal = dayFeedbacks.length;
+
+                days.push({
+                    date: dateStr,
+                    total: dayTotal,
+                    correct: dayCorrect,
+                    accuracy: dayTotal > 0 ? Math.round((dayCorrect / dayTotal) * 100) : null
+                });
+            }
+
+            const maxTotal = Math.max(...days.map(d => d.total), 1);
+
+            trendChartEl.innerHTML = days.map((d, i) => {
+                const height = d.total > 0 ? Math.max(20, (d.total / maxTotal) * 80) : 10;
+                const color = d.accuracy === null ? '#e2e8f0' :
+                              d.accuracy >= 80 ? '#10b981' :
+                              d.accuracy >= 60 ? '#f59e0b' : '#ef4444';
+                const dayName = new Date(d.date).toLocaleDateString('de-DE', { weekday: 'short' });
+
+                return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;">
+                    <div style="width:100%; background:${color}; height:${height}px; border-radius:4px;" title="${d.total} Berichte, ${d.accuracy !== null ? d.accuracy + '% korrekt' : 'keine Daten'}"></div>
+                    <span style="font-size:9px; color:#94a3b8;">${dayName}</span>
+                </div>`;
+            }).join('');
+
+            // Cloud-Status
+            const cloudIcon = document.getElementById('dashCloudIcon');
+            const cloudText = document.getElementById('dashCloudText');
+            const cloudDetails = document.getElementById('dashCloudDetails');
+
+            if (cloudTeamCode) {
+                cloudIcon.textContent = firebaseDb ? '🟢' : '🟡';
+                cloudText.textContent = firebaseDb ? 'Mit Team verbunden' : 'Lokaler Sync-Modus';
+                cloudDetails.textContent = `Team: ${cloudTeamCode}`;
+            } else {
+                cloudIcon.textContent = '⚪';
+                cloudText.textContent = 'Nicht verbunden';
+                cloudDetails.textContent = 'Team-Code eingeben um zu verbinden';
+            }
+        }
+
+        // Analytics als CSV exportieren
+        function exportAnalytics() {
+            const feedbacks = JSON.parse(localStorage.getItem('kiFeedback') || '[]');
+            const wb = getWissensbasis();
+
+            let csv = 'Datum,Typ,Fehler,Notiz\n';
+            feedbacks.forEach(f => {
+                const date = f.timestamp ? new Date(f.timestamp).toLocaleString('de-DE') : '';
+                const type = f.type === 'correct' ? 'Korrekt' : 'Korrigiert';
+                const errors = f.errors?.join('; ') || '';
+                const note = (f.note || '').replace(/"/g, '""');
+                csv += `"${date}","${type}","${errors}","${note}"\n`;
+            });
+
+            csv += '\n\nWissensbasis\n';
+            csv += 'Typ,Werte\n';
+            csv += `"Mitarbeiter","${wb.mitarbeiter.join(', ')}"\n`;
+            csv += `"Kunden","${wb.kunden.join(', ')}"\n`;
+            csv += `"Materialien","${wb.materialien.join(', ')}"\n`;
+
+            // Download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ki-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('📥 Analytics exportiert!', 'success');
+        }
+
+        // Analytics zurücksetzen
+        function resetAnalytics() {
+            if (!confirm('⚠️ ACHTUNG!\n\nDas löscht ALLE KI-Lerndaten:\n- Alle Feedbacks\n- Alle Korrekturen\n- Die Wissensbasis\n\nDie KI muss dann neu lernen!\n\nWirklich fortfahren?')) {
+                return;
+            }
+
+            if (!confirm('🔴 Letzte Warnung!\n\nAlle Daten werden unwiderruflich gelöscht!\n\nSicher?')) {
+                return;
+            }
+
+            localStorage.removeItem('kiFeedback');
+            localStorage.removeItem('kiCorrections');
+            localStorage.removeItem('firmenMitarbeiter');
+            localStorage.removeItem('firmenKunden');
+            localStorage.removeItem('firmenMaterialien');
+            localStorage.removeItem('gelernteBeispiele');
+
+            updateAnalyticsDashboard();
+            updateKIStats();
+            updateWissensbasisCounts();
+
+            showToast('🗑️ Alle KI-Daten gelöscht', 'info');
         }
 
         // Agent-Text mit KI verarbeiten
