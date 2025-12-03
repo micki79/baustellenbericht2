@@ -8024,21 +8024,9 @@ ${rawText}`;
                 const gesamtText = (pttFullTranscript + sessionText).trim();
 
                 if (gesamtText) {
-                    if (targetId === 'taetigkeit') {
-                        console.log('🎤 Spracheingabe erkannt:', gesamtText);
-                        showTextVerbesserungModal(gesamtText, 'taetigkeit');
-                    } else {
-                        const targetElement = document.getElementById(targetId);
-                        if (targetElement) {
-                            const originalText = targetElement.dataset.originalText || '';
-                            if (originalText) {
-                                targetElement.value = originalText + '\n' + gesamtText;
-                            } else {
-                                targetElement.value = gesamtText;
-                            }
-                            showToast('✅ Text übernommen', 'success');
-                        }
-                    }
+                    // IMMER das KI-Verbesserungs-Modal anzeigen (für alle Ziele)
+                    console.log('🎤 Spracheingabe erkannt:', gesamtText);
+                    showTextVerbesserungModal(gesamtText, targetId);
                 } else {
                     showToast('⚠️ Keine Sprache erkannt. Bitte erneut versuchen.', 'info');
                 }
@@ -11143,33 +11131,34 @@ brew install mkcert</div>
         function waehleTextvorschlag(text, typ) {
             const stundenInput = document.getElementById('modalStunden');
             const stunden = stundenInput ? parseFloat(stundenInput.value) : null;
-            
+
             const modal = document.getElementById('textVerbesserungModal');
             if (modal) modal.remove();
-            
+
             if (typ === 'taetigkeit') {
+                // Tätigkeit → Neue Zeile in Tabelle
                 const tbody = document.getElementById('taetigkeitenTable');
                 const datumEl = document.getElementById('datum');
                 const datum = datumEl ? datumEl.value : '';
                 if (!tbody) return;
                 const newRow = tbody.insertRow();
                 newRow.className = 'editable-row';
-                const stundenText = stunden ? stunden + ' Std' : '';
-                
+
                 newRow.innerHTML = `
                     <td contenteditable="true">${escapeHtml(taetigkeitenRowCounter.toString())}</td>
                     <td>${escapeHtml(datum)}</td>
                     <td><textarea class="taetigkeit-textarea" rows="2" placeholder="Tätigkeit beschreiben...">${escapeHtml(text)}</textarea></td>
-                    <td contenteditable="true" class="std-cell">${stunden ? escapeHtml(stunden) : ''}</td>
+                    <td contenteditable="true" class="std-cell">${stunden ? escapeHtml(String(stunden)) : ''}</td>
                 `;
-                
+
                 taetigkeitenRowCounter++;
                 showToast(stunden ? `✅ + ${stunden}h übernommen` : '✅ Übernommen', 'success');
-            } else if (typ === 'material') {
-                const textarea = document.getElementById('materialText');
+            } else {
+                // Alle anderen Ziele → Text in Textarea einfügen
+                const textarea = document.getElementById(typ);
                 if (textarea) {
                     textarea.value = textarea.value ? textarea.value + '\n' + text : text;
-                    showToast('✅ Material übernommen', 'success');
+                    showToast('✅ Text übernommen', 'success');
                 }
             }
         }
