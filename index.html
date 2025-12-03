@@ -6695,60 +6695,77 @@ ${rawText}`;
         
         // ===== RESET =====
         function resetForm() {
-            document.getElementById('baustelle').value = '';
-            document.getElementById('materialText').value = '';
-            document.getElementById('maschinenText').value = '';
-            document.getElementById('personalFormText').textContent = '';
-            
-            // Reset table - löshe alle Zeilen
+            const baustelleEl = document.getElementById('baustelle');
+            const materialTextEl = document.getElementById('materialText');
+            const maschinenTextEl = document.getElementById('maschinenText');
+            const personalFormTextEl = document.getElementById('personalFormText');
+            if (baustelleEl) baustelleEl.value = '';
+            if (materialTextEl) materialTextEl.value = '';
+            if (maschinenTextEl) maschinenTextEl.value = '';
+            if (personalFormTextEl) personalFormTextEl.textContent = '';
+
+            // Reset table - lösche alle Zeilen
             const tbody = document.getElementById('taetigkeitenTable');
-            while (tbody.rows.length > 0) {
-                tbody.deleteRow(0);
+            if (tbody) {
+                while (tbody.rows.length > 0) {
+                    tbody.deleteRow(0);
+                }
             }
             taetigkeitenRowCounter = 1;
-            
+
             selectedTaetigkeiten = [];
             selectedMaterial = [];
             selectedWerkzeuge = [];
             personalListe = [];
             fahrzeugListe = [];
             photos = [];
-            
+
             updatePersonalListe();
             updateFahrzeugListe();
             updatePhotoGrid();
-            
+
             clearSignature('signaturePad1');
             clearSignature('signaturePad2');
-            
-            document.getElementById('taetigkeitenChips').innerHTML = '';
-            document.getElementById('materialChips').innerHTML = '';
-            document.getElementById('werkzeugeChips').innerHTML = '';
-            
+
+            const tChipsEl = document.getElementById('taetigkeitenChips');
+            const mChipsEl = document.getElementById('materialChips');
+            const wChipsEl = document.getElementById('werkzeugeChips');
+            if (tChipsEl) tChipsEl.innerHTML = '';
+            if (mChipsEl) mChipsEl.innerHTML = '';
+            if (wChipsEl) wChipsEl.innerHTML = '';
+
             const today = new Date();
-            document.getElementById('datum').valueAsDate = today;
-            
+            const datumEl = document.getElementById('datum');
+            if (datumEl) datumEl.valueAsDate = today;
+
             showToast('Formular zurückgesetzt', 'success');
         }
         
         // ===== DOWNLOAD & EXPORT FUNKTIONEN =====
         // Download aktuellen Bericht als JSON
         function downloadBerichtAsJSON() {
-            const rapportNr = document.getElementById('rapportNummer').textContent;
-            const datum = document.getElementById('datum').value;
-            const projektnummer = document.getElementById('projektnummer').value;
-            const baustelle = document.getElementById('baustelle').value;
-            const gpsLat = document.getElementById('gpsLat').value;
-            const gpsLon = document.getElementById('gpsLon').value;
-            
+            const rapportNrEl = document.getElementById('rapportNummer');
+            const datumEl = document.getElementById('datum');
+            const projektnummerEl = document.getElementById('projektnummer');
+            const baustelleEl = document.getElementById('baustelle');
+            const gpsLatEl = document.getElementById('gpsLat');
+            const gpsLonEl = document.getElementById('gpsLon');
+
+            const rapportNr = rapportNrEl ? rapportNrEl.textContent : '';
+            const datum = datumEl ? datumEl.value : '';
+            const projektnummer = projektnummerEl ? projektnummerEl.value : '';
+            const baustelle = baustelleEl ? baustelleEl.value : '';
+            const gpsLat = gpsLatEl ? gpsLatEl.value : '';
+            const gpsLon = gpsLonEl ? gpsLonEl.value : '';
+
             if (!baustelle) {
                 alert('⚠️ Bitte erst Baustelle eingeben!');
                 return;
             }
-            
+
             // Collect data
             const tbody = document.getElementById('taetigkeitenTable');
-            const rows = tbody.querySelectorAll('tr');
+            const rows = tbody ? tbody.querySelectorAll('tr') : [];
             const taetigkeiten = [];
             
             rows.forEach(row => {
@@ -6873,36 +6890,44 @@ ${rawText}`;
             if (autoSaveInterval) {
                 clearInterval(autoSaveInterval);
             }
-            
+
             autoSaveInterval = setInterval(() => {
-                const baustelle = document.getElementById('baustelle').value;
+                const baustelleEl = document.getElementById('baustelle');
+                const materialEl = document.getElementById('materialText');
+                const maschinenEl = document.getElementById('maschinenText');
+                const projektnummerEl = document.getElementById('projektnummer');
+                const datumEl = document.getElementById('datum');
+                const gpsLatEl = document.getElementById('gpsLat');
+                const gpsLonEl = document.getElementById('gpsLon');
+
+                const baustelle = baustelleEl ? baustelleEl.value : '';
                 if (!baustelle) return; // Nur speichern wenn Baustelle angegeben
-                
+
                 // Check if data has changed
                 const currentData = JSON.stringify({
-                    baustelle: document.getElementById('baustelle').value,
-                    material: document.getElementById('materialText').value,
-                    maschinen: document.getElementById('maschinenText').value
+                    baustelle: baustelle,
+                    material: materialEl ? materialEl.value : '',
+                    maschinen: maschinenEl ? maschinenEl.value : ''
                 });
-                
+
                 if (currentData === lastAutoSaveData) return;
-                
+
                 lastAutoSaveData = currentData;
-                
+
                 // Save to sessionStorage (temporary, lost on browser close)
                 const autoSaveData = {
-                    baustelle: document.getElementById('baustelle').value,
-                    projektnummer: document.getElementById('projektnummer').value,
-                    datum: document.getElementById('datum').value,
-                    gpsLat: document.getElementById('gpsLat').value,
-                    gpsLon: document.getElementById('gpsLon').value,
-                    material: document.getElementById('materialText').value,
-                    maschinen: document.getElementById('maschinenText').value,
+                    baustelle: baustelle,
+                    projektnummer: projektnummerEl ? projektnummerEl.value : '',
+                    datum: datumEl ? datumEl.value : '',
+                    gpsLat: gpsLatEl ? gpsLatEl.value : '',
+                    gpsLon: gpsLonEl ? gpsLonEl.value : '',
+                    material: materialEl ? materialEl.value : '',
+                    maschinen: maschinenEl ? maschinenEl.value : '',
                     timestamp: new Date().toISOString()
                 };
-                
+
                 sessionStorage.setItem('baustellenbericht_autosave', JSON.stringify(autoSaveData));
-                
+
                 // Show subtle notification
                 const indicator = document.getElementById('autoSaveIndicator');
                 if (indicator) {
