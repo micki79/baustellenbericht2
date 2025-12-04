@@ -2979,6 +2979,136 @@
         </div>
     </div>
 
+    <!-- ===== KI-ASSISTENT FLOATING PANEL ===== -->
+    <div id="kiAssistentPanel" style="
+        position: fixed;
+        bottom: 80px;
+        right: 20px;
+        width: 320px;
+        max-height: 500px;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 9998;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+    ">
+        <!-- Header -->
+        <div style="
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        ">
+            <div>
+                <div style="font-weight: bold; font-size: 16px;">KI-Assistent</div>
+                <div style="font-size: 11px; opacity: 0.9;">Dein Rapport-Helfer</div>
+            </div>
+            <button onclick="toggleKIAssistent()" style="
+                background: rgba(255,255,255,0.2);
+                border: none;
+                color: white;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 16px;
+            ">✕</button>
+        </div>
+
+        <!-- Fortschritt -->
+        <div style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
+            <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px;">Tages-Fortschritt</div>
+            <div id="kiProgress">
+                <div style="background:#e2e8f0;border-radius:10px;height:8px;overflow:hidden;">
+                    <div style="background:linear-gradient(90deg,#10b981,#059669);width:0%;height:100%;transition:width 0.3s;"></div>
+                </div>
+                <div style="text-align:center;font-size:12px;color:#64748b;margin-top:4px;">0/8 erledigt</div>
+            </div>
+        </div>
+
+        <!-- Checkliste -->
+        <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 13px;">Arbeitsschritte-Checkliste</div>
+            <div id="kiChecklist">
+                <!-- Wird dynamisch befüllt -->
+            </div>
+        </div>
+
+        <!-- Letzte Eingaben -->
+        <div style="padding: 15px; flex: 1; overflow-y: auto; max-height: 150px;">
+            <div style="font-weight: 600; margin-bottom: 10px; font-size: 13px;">Letzte Eingaben</div>
+            <div id="kiHistory" style="font-size: 12px; color: #64748b;">
+                <div style="text-align: center; padding: 20px; color: #94a3b8;">
+                    Noch keine Eingaben heute
+                </div>
+            </div>
+        </div>
+
+        <!-- Aktionen -->
+        <div style="padding: 15px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button onclick="kiAssistent.generiereVorschlaege().then(v => zeigeKIVorschlaege(v))" style="
+                    flex: 1;
+                    padding: 10px;
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                ">KI-Vorschläge</button>
+                <button onclick="zeigeRapportVorschau()" style="
+                    flex: 1;
+                    padding: 10px;
+                    background: #10b981;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                ">Vorschau</button>
+                <button onclick="kiAssistent.resetSession(); showToast('Session zurückgesetzt', 'info');" style="
+                    padding: 10px 15px;
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                ">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KI-Assistent Toggle Button -->
+    <button id="kiAssistentToggle" onclick="toggleKIAssistent()" style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        cursor: pointer;
+        z-index: 9999;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    ">
+        <span id="kiToggleIcon">🤖</span>
+    </button>
+
     <script>
         // ===== GLOBAL VARIABLES =====
         let selectedTaetigkeiten = [];
@@ -2989,12 +3119,533 @@
         let photos = [];
         let taetigkeitenRowCounter = 1;
 
+        // ===== KI-ASSISTENT MIT KONTEXT-SPEICHER =====
+        const kiAssistent = {
+            // Session-Kontext speichert alle Eingaben
+            kontext: {
+                baustelle: '',
+                projektnummer: '',
+                datum: '',
+                taetigkeiten: [],
+                material: [],
+                maschinen: [],
+                personal: [],
+                notizen: [],
+                gespraeche: [] // Alle Spracheingaben
+            },
+
+            // Typische Arbeitsschritte für Fliesenleger
+            arbeitsschritte: [
+                { id: 'ankunft', name: '🚗 Ankunft & Einrichtung', done: false },
+                { id: 'vorbereitung', name: '🛠️ Untergrund vorbereiten', done: false },
+                { id: 'material', name: '📦 Material prüfen/holen', done: false },
+                { id: 'verlegung', name: '🔨 Hauptarbeit (Verlegen)', done: false },
+                { id: 'verfugung', name: '🧱 Verfugen', done: false },
+                { id: 'reinigung', name: '🧹 Reinigung', done: false },
+                { id: 'dokumentation', name: '📸 Fotos & Dokumentation', done: false },
+                { id: 'abschluss', name: '✅ Abschluss & Aufräumen', done: false }
+            ],
+
+            // Fügt Eingabe zum Kontext hinzu
+            addToKontext: function(typ, text) {
+                if (!text || !text.trim()) return;
+
+                const eintrag = {
+                    text: text.trim(),
+                    zeit: new Date().toLocaleTimeString('de-DE'),
+                    timestamp: Date.now()
+                };
+
+                if (typ === 'taetigkeit') {
+                    this.kontext.taetigkeiten.push(eintrag);
+                    this.checkArbeitsschritt(text);
+                } else if (typ === 'material' || typ === 'materialText') {
+                    this.kontext.material.push(eintrag);
+                    this.markArbeitsschritt('material');
+                } else if (typ === 'maschinen' || typ === 'maschinenText') {
+                    this.kontext.maschinen.push(eintrag);
+                }
+
+                this.kontext.gespraeche.push({ typ, ...eintrag });
+                this.updateAssistentPanel();
+                this.speichereSession();
+            },
+
+            // Prüft welcher Arbeitsschritt erledigt wurde
+            checkArbeitsschritt: function(text) {
+                const lower = text.toLowerCase();
+                if (lower.includes('ankommen') || lower.includes('einricht') || lower.includes('aufbau')) {
+                    this.markArbeitsschritt('ankunft');
+                }
+                if (lower.includes('grundier') || lower.includes('spachtel') || lower.includes('vorberei') || lower.includes('abkleb')) {
+                    this.markArbeitsschritt('vorbereitung');
+                }
+                if (lower.includes('verleg') || lower.includes('kleb') || lower.includes('fliese') || lower.includes('schneid')) {
+                    this.markArbeitsschritt('verlegung');
+                }
+                if (lower.includes('fug') || lower.includes('silikon')) {
+                    this.markArbeitsschritt('verfugung');
+                }
+                if (lower.includes('reinig') || lower.includes('säuber') || lower.includes('putz')) {
+                    this.markArbeitsschritt('reinigung');
+                }
+                if (lower.includes('foto') || lower.includes('dokument') || lower.includes('bild')) {
+                    this.markArbeitsschritt('dokumentation');
+                }
+                if (lower.includes('aufräum') || lower.includes('abschluss') || lower.includes('fertig')) {
+                    this.markArbeitsschritt('abschluss');
+                }
+            },
+
+            // Markiert Arbeitsschritt als erledigt
+            markArbeitsschritt: function(id) {
+                const schritt = this.arbeitsschritte.find(s => s.id === id);
+                if (schritt && !schritt.done) {
+                    schritt.done = true;
+                    this.updateAssistentPanel();
+                }
+            },
+
+            // Gibt fehlende Arbeitsschritte zurück
+            getFehlendeSchritte: function() {
+                return this.arbeitsschritte.filter(s => !s.done);
+            },
+
+            // Generiert KI-Vorschläge basierend auf Kontext
+            generiereVorschlaege: async function() {
+                const fehlend = this.getFehlendeSchritte();
+                const vorschlaege = [];
+
+                // Vorschläge basierend auf fehlenden Schritten
+                if (fehlend.length > 0) {
+                    const naechster = fehlend[0];
+                    vorschlaege.push({
+                        typ: 'erinnerung',
+                        text: `💡 Noch offen: ${naechster.name}`,
+                        aktion: naechster.id
+                    });
+                }
+
+                // Vorschläge basierend auf letzter Eingabe
+                if (this.kontext.taetigkeiten.length > 0) {
+                    const letzte = this.kontext.taetigkeiten[this.kontext.taetigkeiten.length - 1];
+                    const kiVorschlag = await this.holeKIVorschlag(letzte.text);
+                    if (kiVorschlag) {
+                        vorschlaege.push({
+                            typ: 'erweiterung',
+                            text: kiVorschlag,
+                            quelle: 'KI'
+                        });
+                    }
+                }
+
+                // Material-Vorschläge basierend auf Tätigkeiten
+                if (this.kontext.taetigkeiten.length > 0 && this.kontext.material.length === 0) {
+                    vorschlaege.push({
+                        typ: 'hinweis',
+                        text: '📦 Material noch nicht erfasst - vergessen?'
+                    });
+                }
+
+                return vorschlaege;
+            },
+
+            // Holt KI-Vorschlag von Pollinations
+            holeKIVorschlag: async function(text) {
+                try {
+                    const prompt = `Du bist ein Assistent für Fliesenleger-Rapporte.
+Der Arbeiter hat eingetragen: "${text}"
+
+Gib 1-2 kurze Ergänzungsvorschläge was noch dokumentiert werden könnte.
+Antworte NUR mit den Vorschlägen, keine Erklärung. Auf Deutsch.`;
+
+                    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+                    if (response.ok) {
+                        return await response.text();
+                    }
+                } catch (e) {
+                    console.log('KI-Vorschlag nicht verfügbar:', e);
+                }
+                return null;
+            },
+
+            // Speichert Session in localStorage
+            speichereSession: function() {
+                localStorage.setItem('kiAssistent_session', JSON.stringify({
+                    kontext: this.kontext,
+                    arbeitsschritte: this.arbeitsschritte,
+                    timestamp: Date.now()
+                }));
+            },
+
+            // Lädt Session aus localStorage
+            ladeSession: function() {
+                try {
+                    const saved = localStorage.getItem('kiAssistent_session');
+                    if (saved) {
+                        const data = JSON.parse(saved);
+                        // Nur laden wenn weniger als 12 Stunden alt
+                        if (Date.now() - data.timestamp < 12 * 60 * 60 * 1000) {
+                            this.kontext = data.kontext;
+                            this.arbeitsschritte = data.arbeitsschritte;
+                            return true;
+                        }
+                    }
+                } catch (e) {
+                    console.log('Session laden fehlgeschlagen:', e);
+                }
+                return false;
+            },
+
+            // Setzt Session zurück
+            resetSession: function() {
+                this.kontext = {
+                    baustelle: '',
+                    projektnummer: '',
+                    datum: '',
+                    taetigkeiten: [],
+                    material: [],
+                    maschinen: [],
+                    personal: [],
+                    notizen: [],
+                    gespraeche: []
+                };
+                this.arbeitsschritte.forEach(s => s.done = false);
+                localStorage.removeItem('kiAssistent_session');
+                this.updateAssistentPanel();
+            },
+
+            // Aktualisiert das Assistenten-Panel
+            updateAssistentPanel: function() {
+                const panel = document.getElementById('kiAssistentPanel');
+                if (!panel) return;
+
+                const fehlend = this.getFehlendeSchritte();
+                const erledigt = this.arbeitsschritte.filter(s => s.done);
+
+                // Checkliste aktualisieren
+                const checklistEl = document.getElementById('kiChecklist');
+                if (checklistEl) {
+                    checklistEl.innerHTML = this.arbeitsschritte.map(s => `
+                        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;cursor:pointer;"
+                             onclick="kiAssistent.markArbeitsschritt('${s.id}')">
+                            <span style="font-size:16px;">${s.done ? '✅' : '⬜'}</span>
+                            <span style="color:${s.done ? '#10b981' : '#64748b'};${s.done ? 'text-decoration:line-through;' : ''}">${s.name}</span>
+                        </div>
+                    `).join('');
+                }
+
+                // Fortschritt aktualisieren
+                const progressEl = document.getElementById('kiProgress');
+                if (progressEl) {
+                    const prozent = Math.round((erledigt.length / this.arbeitsschritte.length) * 100);
+                    progressEl.innerHTML = `
+                        <div style="background:#e2e8f0;border-radius:10px;height:8px;overflow:hidden;">
+                            <div style="background:linear-gradient(90deg,#10b981,#059669);width:${prozent}%;height:100%;transition:width 0.3s;"></div>
+                        </div>
+                        <div style="text-align:center;font-size:12px;color:#64748b;margin-top:4px;">${erledigt.length}/${this.arbeitsschritte.length} erledigt</div>
+                    `;
+                }
+
+                // Letzte Eingaben anzeigen
+                const historyEl = document.getElementById('kiHistory');
+                if (historyEl && this.kontext.gespraeche.length > 0) {
+                    const letzte = this.kontext.gespraeche.slice(-5).reverse();
+                    historyEl.innerHTML = letzte.map(g => `
+                        <div style="background:#f8fafc;padding:8px;border-radius:6px;margin-bottom:6px;font-size:12px;">
+                            <div style="color:#94a3b8;font-size:10px;">${g.zeit} - ${g.typ}</div>
+                            <div style="color:#475569;">${g.text.substring(0, 50)}${g.text.length > 50 ? '...' : ''}</div>
+                        </div>
+                    `).join('');
+                }
+            }
+        };
+
         // ===== SICHERHEIT: HTML-Escaping für XSS-Schutz =====
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // ===== KI-ASSISTENT HELPER FUNKTIONEN =====
+
+        // Toggle KI-Assistent Panel
+        function toggleKIAssistent() {
+            const panel = document.getElementById('kiAssistentPanel');
+            const btn = document.getElementById('kiAssistentToggle');
+            const icon = document.getElementById('kiToggleIcon');
+
+            if (!panel) return;
+
+            if (panel.style.display === 'none' || panel.style.display === '') {
+                panel.style.display = 'flex';
+                if (icon) icon.textContent = '✕';
+                if (btn) btn.style.transform = 'rotate(90deg)';
+                kiAssistent.updateAssistentPanel();
+            } else {
+                panel.style.display = 'none';
+                if (icon) icon.textContent = '🤖';
+                if (btn) btn.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // Zeige KI-Vorschläge Modal
+        function zeigeKIVorschlaege(vorschlaege) {
+            // Entferne altes Modal
+            const existing = document.getElementById('kiVorschlaegeModal');
+            if (existing) existing.remove();
+
+            const modal = document.createElement('div');
+            modal.id = 'kiVorschlaegeModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 20px;
+            `;
+
+            let vorschlaegeHTML = '';
+            if (vorschlaege && vorschlaege.length > 0) {
+                vorschlaegeHTML = vorschlaege.map((v, i) => `
+                    <div style="
+                        background: ${v.typ === 'erinnerung' ? '#fef3c7' : v.typ === 'hinweis' ? '#dbeafe' : '#f0fdf4'};
+                        padding: 15px;
+                        border-radius: 10px;
+                        margin-bottom: 10px;
+                        border-left: 4px solid ${v.typ === 'erinnerung' ? '#f59e0b' : v.typ === 'hinweis' ? '#3b82f6' : '#10b981'};
+                    ">
+                        <div style="font-size: 11px; color: #64748b; margin-bottom: 5px;">
+                            ${v.typ === 'erinnerung' ? '💡 Erinnerung' : v.typ === 'hinweis' ? '📝 Hinweis' : '🤖 KI-Vorschlag'}
+                        </div>
+                        <div style="font-size: 14px; color: #334155;">${escapeHtml(v.text)}</div>
+                        ${v.aktion ? `<button onclick="kiAssistent.markArbeitsschritt('${v.aktion}'); document.getElementById('kiVorschlaegeModal').remove();" style="
+                            margin-top: 10px;
+                            padding: 8px 15px;
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-size: 12px;
+                        ">Als erledigt markieren</button>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                vorschlaegeHTML = `
+                    <div style="text-align: center; padding: 30px; color: #64748b;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">✨</div>
+                        <div>Keine weiteren Vorschläge - du bist gut organisiert!</div>
+                    </div>
+                `;
+            }
+
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    max-width: 450px;
+                    width: 100%;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+                ">
+                    <div style="
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 16px 16px 0 0;
+                    ">
+                        <div style="font-size: 18px; font-weight: bold;">🤖 KI-Vorschläge</div>
+                        <div style="font-size: 12px; opacity: 0.9;">Basierend auf deinen Eingaben</div>
+                    </div>
+                    <div style="padding: 20px;">
+                        ${vorschlaegeHTML}
+                    </div>
+                    <div style="padding: 15px; border-top: 1px solid #e2e8f0; text-align: center;">
+                        <button onclick="document.getElementById('kiVorschlaegeModal').remove()" style="
+                            padding: 12px 30px;
+                            background: #64748b;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">Schließen</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
+        }
+
+        // Zeige Rapport-Vorschau
+        function zeigeRapportVorschau() {
+            const existing = document.getElementById('rapportVorschauModal');
+            if (existing) existing.remove();
+
+            // Sammle aktuelle Rapport-Daten
+            const baustelleEl = document.getElementById('baustelle');
+            const datumEl = document.getElementById('datum');
+            const materialEl = document.getElementById('materialText');
+            const maschinenEl = document.getElementById('maschinenText');
+            const tbody = document.getElementById('taetigkeitenTable');
+
+            const baustelle = baustelleEl ? baustelleEl.value : 'Nicht angegeben';
+            const datum = datumEl ? datumEl.value : new Date().toLocaleDateString('de-DE');
+            const material = materialEl ? materialEl.value : '';
+            const maschinen = maschinenEl ? maschinenEl.value : '';
+
+            // Tätigkeiten sammeln
+            let taetigkeitenHTML = '';
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach((row, idx) => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length >= 4) {
+                        const textarea = cells[2].querySelector('textarea');
+                        const taetigkeit = textarea ? textarea.value : cells[2].textContent;
+                        const stunden = cells[3].textContent || cells[3].querySelector('input')?.value || '-';
+                        taetigkeitenHTML += `
+                            <tr>
+                                <td style="padding:8px;border:1px solid #ddd;">${idx + 1}</td>
+                                <td style="padding:8px;border:1px solid #ddd;max-width:300px;">${escapeHtml(taetigkeit)}</td>
+                                <td style="padding:8px;border:1px solid #ddd;text-align:center;">${escapeHtml(stunden)}</td>
+                            </tr>
+                        `;
+                    }
+                });
+            }
+
+            if (!taetigkeitenHTML) {
+                taetigkeitenHTML = `<tr><td colspan="3" style="padding:20px;text-align:center;color:#94a3b8;">Noch keine Tätigkeiten erfasst</td></tr>`;
+            }
+
+            // Fehlende Schritte
+            const fehlend = kiAssistent.getFehlendeSchritte();
+            let fehlendHTML = '';
+            if (fehlend.length > 0) {
+                fehlendHTML = `
+                    <div style="background:#fef3c7;padding:15px;border-radius:10px;margin-top:20px;">
+                        <div style="font-weight:600;margin-bottom:10px;color:#92400e;">⚠️ Noch nicht erfasst:</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                            ${fehlend.map(s => `<span style="background:#fde68a;padding:5px 10px;border-radius:15px;font-size:12px;">${s.name}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'rapportVorschauModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.6);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                padding: 20px;
+            `;
+
+            modal.innerHTML = `
+                <div style="
+                    background: white;
+                    border-radius: 16px;
+                    max-width: 600px;
+                    width: 100%;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+                ">
+                    <div style="
+                        background: linear-gradient(135deg, #10b981, #059669);
+                        color: white;
+                        padding: 20px;
+                        border-radius: 16px 16px 0 0;
+                    ">
+                        <div style="font-size: 18px; font-weight: bold;">📋 Rapport-Vorschau</div>
+                        <div style="font-size: 12px; opacity: 0.9;">Stand: ${new Date().toLocaleTimeString('de-DE')}</div>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+                            <div>
+                                <div style="font-size:11px;color:#64748b;">Baustelle</div>
+                                <div style="font-weight:600;">${escapeHtml(baustelle)}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:11px;color:#64748b;">Datum</div>
+                                <div style="font-weight:600;">${escapeHtml(datum)}</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom:20px;">
+                            <div style="font-weight:600;margin-bottom:10px;">🔨 Tätigkeiten</div>
+                            <table style="width:100%;border-collapse:collapse;">
+                                <thead>
+                                    <tr style="background:#f1f5f9;">
+                                        <th style="padding:8px;border:1px solid #ddd;width:40px;">Nr.</th>
+                                        <th style="padding:8px;border:1px solid #ddd;">Tätigkeit</th>
+                                        <th style="padding:8px;border:1px solid #ddd;width:60px;">Std.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${taetigkeitenHTML}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        ${material ? `
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;margin-bottom:5px;">📦 Material</div>
+                            <div style="background:#f8fafc;padding:10px;border-radius:8px;font-size:13px;white-space:pre-wrap;">${escapeHtml(material)}</div>
+                        </div>
+                        ` : ''}
+
+                        ${maschinen ? `
+                        <div style="margin-bottom:15px;">
+                            <div style="font-weight:600;margin-bottom:5px;">🔧 Maschinen</div>
+                            <div style="background:#f8fafc;padding:10px;border-radius:8px;font-size:13px;white-space:pre-wrap;">${escapeHtml(maschinen)}</div>
+                        </div>
+                        ` : ''}
+
+                        ${fehlendHTML}
+                    </div>
+                    <div style="padding: 15px; border-top: 1px solid #e2e8f0; display:flex;gap:10px;justify-content:center;">
+                        <button onclick="document.getElementById('rapportVorschauModal').remove()" style="
+                            padding: 12px 30px;
+                            background: #64748b;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">Schließen</button>
+                        <button onclick="document.getElementById('rapportVorschauModal').remove(); kiAssistent.generiereVorschlaege().then(v => zeigeKIVorschlaege(v));" style="
+                            padding: 12px 30px;
+                            background: linear-gradient(135deg, #667eea, #764ba2);
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">🤖 KI-Tipps</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            modal.onclick = (e) => {
+                if (e.target === modal) modal.remove();
+            };
         }
 
         // ===== BROWSER CAPABILITIES (Feature Detection statt Platform Detection) =====
@@ -11161,6 +11812,9 @@ brew install mkcert</div>
                     showToast('✅ Text übernommen', 'success');
                 }
             }
+
+            // KI-Assistent: Eingabe zum Kontext hinzufügen
+            kiAssistent.addToKontext(typ, text);
         }
 
         // ===== INITIALISIERUNG =====
@@ -11192,7 +11846,15 @@ brew install mkcert</div>
             console.log(`📊 Baustellenbericht v3.3.4 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
-            console.log(`   ℹ️ KI deaktiviert (nur lokale Vorschläge)`);
+
+            // KI-Assistent initialisieren
+            if (kiAssistent.ladeSession()) {
+                console.log('   🤖 KI-Assistent: Session wiederhergestellt');
+                kiAssistent.updateAssistentPanel();
+            } else {
+                console.log('   🤖 KI-Assistent: Neue Session gestartet');
+                kiAssistent.updateAssistentPanel();
+            }
         });
         
         
