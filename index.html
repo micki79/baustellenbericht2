@@ -2247,15 +2247,16 @@
                 </div>
 
                 <button id="agentButton"
-                        onmousedown="startAgentRecording()"
-                        onmouseup="stopAgentRecording()"
-                        onmouseleave="stopAgentRecording()"
-                        ontouchstart="startAgentRecording()"
-                        ontouchend="stopAgentRecording()"
-                        style="width: 100%; padding: 20px; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.5); border-radius: 12px; color: white; font-size: 16px; cursor: pointer; transition: all 0.3s;">
-                    <div style="font-size: 30px; margin-bottom: 8px;">🎤</div>
-                    <div style="font-weight: bold;">Gedrückt halten & Bericht einsprechen</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px;">z.B. "Heute bei Müller, 25qm Fliesen verlegt, 3 Mann, 8 Stunden..."</div>
+                        onmousedown="startAgentRecording(event)"
+                        onmouseup="stopAgentRecording(event)"
+                        onmouseleave="stopAgentRecording(event)"
+                        ontouchstart="startAgentRecording(event)"
+                        ontouchend="stopAgentRecording(event)"
+                        oncontextmenu="return false;"
+                        style="width: 100%; padding: 20px; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.5); border-radius: 12px; color: white; font-size: 16px; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation;">
+                    <div style="font-size: 30px; margin-bottom: 8px; pointer-events: none;">🎤</div>
+                    <div style="font-weight: bold; pointer-events: none;">Gedrückt halten & Bericht einsprechen</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px; pointer-events: none;">z.B. "Heute bei Müller, 25qm Fliesen verlegt, 3 Mann, 8 Stunden..."</div>
                 </button>
 
                 <div id="agentStatus" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 8px;">
@@ -2979,135 +2980,165 @@
         </div>
     </div>
 
-    <!-- ===== KI-ASSISTENT FLOATING PANEL ===== -->
-    <div id="kiAssistentPanel" style="
+    <!-- ===== NEUES INTERAKTIVES KI-CHAT-SYSTEM ===== -->
+    <div id="kiChatPanel" style="
         position: fixed;
         bottom: 80px;
         right: 20px;
-        width: 320px;
-        max-height: 500px;
+        width: 380px;
+        max-height: 85vh;
         background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        border-radius: 20px;
+        box-shadow: 0 15px 50px rgba(0,0,0,0.25);
         z-index: 9998;
         display: none;
         flex-direction: column;
         overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
     ">
-        <!-- Header -->
-        <div style="
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        ">
-            <div>
-                <div style="font-weight: bold; font-size: 16px;">KI-Assistent</div>
-                <div style="font-size: 11px; opacity: 0.9;">Dein Rapport-Helfer</div>
-            </div>
-            <button onclick="toggleKIAssistent()" style="
-                background: rgba(255,255,255,0.2);
-                border: none;
-                color: white;
-                width: 30px;
-                height: 30px;
-                border-radius: 50%;
-                cursor: pointer;
-                font-size: 16px;
-            ">✕</button>
-        </div>
-
-        <!-- Fortschritt -->
-        <div style="padding: 15px; border-bottom: 1px solid #e2e8f0;">
-            <div style="font-weight: 600; margin-bottom: 8px; font-size: 13px;">Tages-Fortschritt</div>
-            <div id="kiProgress">
-                <div style="background:#e2e8f0;border-radius:10px;height:8px;overflow:hidden;">
-                    <div style="background:linear-gradient(90deg,#10b981,#059669);width:0%;height:100%;transition:width 0.3s;"></div>
+        <!-- Header mit Tabs -->
+        <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div>
+                    <div style="font-weight: bold; font-size: 18px;">KI-Assistent</div>
+                    <div style="font-size: 11px; opacity: 0.9;">Sprich mit mir - ich helfe dir!</div>
                 </div>
-                <div style="text-align:center;font-size:12px;color:#64748b;margin-top:4px;">0/8 erledigt</div>
+                <button onclick="toggleKIAssistent()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 18px;">✕</button>
+            </div>
+            <!-- Tab-Navigation -->
+            <div style="display: flex; gap: 8px;">
+                <button onclick="switchKITab('chat')" id="kiTabChat" class="ki-tab-btn ki-tab-active" style="flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.9); color: #667eea;">Chat</button>
+                <button onclick="switchKITab('rapport')" id="kiTabRapport" class="ki-tab-btn" style="flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); color: white;">Rapport</button>
+                <button onclick="switchKITab('eingaben')" id="kiTabEingaben" class="ki-tab-btn" style="flex: 1; padding: 8px; border: none; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); color: white;">Eingaben</button>
             </div>
         </div>
 
-        <!-- Checkliste -->
-        <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; max-height: 200px; overflow-y: auto;">
-            <div style="font-weight: 600; margin-bottom: 10px; font-size: 13px;">Arbeitsschritte-Checkliste</div>
-            <div id="kiChecklist">
-                <!-- Wird dynamisch befüllt -->
-            </div>
-        </div>
-
-        <!-- Letzte Eingaben -->
-        <div style="padding: 15px; flex: 1; overflow-y: auto; max-height: 150px;">
-            <div style="font-weight: 600; margin-bottom: 10px; font-size: 13px;">Letzte Eingaben</div>
-            <div id="kiHistory" style="font-size: 12px; color: #64748b;">
-                <div style="text-align: center; padding: 20px; color: #94a3b8;">
-                    Noch keine Eingaben heute
+        <!-- TAB 1: CHAT MIT KI -->
+        <div id="kiTabContentChat" class="ki-tab-content" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+            <!-- Chat-Nachrichten -->
+            <div id="kiChatMessages" style="flex: 1; overflow-y: auto; padding: 15px; min-height: 200px; max-height: 350px;">
+                <!-- Willkommensnachricht -->
+                <div class="ki-message ki-message-bot" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">🤖</div>
+                    <div style="background: #f1f5f9; padding: 12px 15px; border-radius: 0 15px 15px 15px; max-width: 85%;">
+                        <div style="font-size: 13px; color: #334155;">Hallo! Ich bin dein KI-Assistent. Du kannst mir erzählen was du heute gemacht hast und ich helfe dir beim Bericht. Einfach auf den Mikrofon-Button drücken und sprechen!</div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Sprach-Eingabe -->
+            <div style="padding: 15px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <div id="kiChatRecordingStatus" style="display: none; text-align: center; padding: 10px; margin-bottom: 10px; background: #fef3c7; border-radius: 8px; font-size: 13px; color: #92400e;">
+                    <span id="kiChatRecordingText">Ich höre zu...</span>
+                </div>
+                <div id="kiChatPreview" style="display: none; padding: 10px; margin-bottom: 10px; background: #e0f2fe; border-radius: 8px; font-size: 13px; color: #0369a1; font-style: italic;"></div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="kiChatMicBtn"
+                            onmousedown="startKIChatRecording(event)"
+                            onmouseup="stopKIChatRecording(event)"
+                            onmouseleave="stopKIChatRecording(event)"
+                            ontouchstart="startKIChatRecording(event)"
+                            ontouchend="stopKIChatRecording(event)"
+                            style="width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); transition: all 0.2s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;">
+                        🎤
+                    </button>
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-size: 13px; font-weight: 600; color: #475569;">Gedrückt halten zum Sprechen</div>
+                        <div style="font-size: 11px; color: #94a3b8;">Du kannst mehrfach sprechen, ich sammle alles</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Aktionen -->
-        <div style="padding: 15px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button onclick="kiAssistent.generiereVorschlaege().then(v => zeigeKIVorschlaege(v))" style="
-                    flex: 1;
-                    padding: 10px;
-                    background: linear-gradient(135deg, #667eea, #764ba2);
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 600;
-                ">KI-Vorschläge</button>
-                <button onclick="zeigeRapportVorschau()" style="
-                    flex: 1;
-                    padding: 10px;
-                    background: #10b981;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 600;
-                ">Vorschau</button>
-                <button onclick="kiAssistent.resetSession(); showToast('Session zurückgesetzt', 'info');" style="
-                    padding: 10px 15px;
-                    background: #ef4444;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                ">Reset</button>
+        <!-- TAB 2: RAPPORT VORSCHAU -->
+        <div id="kiTabContentRapport" class="ki-tab-content" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+            <div style="flex: 1; overflow-y: auto; padding: 15px; max-height: 400px;">
+                <div style="font-weight: 600; font-size: 14px; color: #475569; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Aktueller Rapport-Entwurf</span>
+                    <button onclick="kiChat.refreshRapport()" style="background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;">Aktualisieren</button>
+                </div>
+                <div id="kiRapportContent" style="background: #f8fafc; border-radius: 12px; padding: 15px;">
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
+                        <div>Noch keine Eingaben vorhanden.</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Sprich mit mir im Chat-Tab!</div>
+                    </div>
+                </div>
+            </div>
+            <!-- KI-Verbesserungsvorschläge -->
+            <div id="kiRapportSuggestions" style="padding: 15px; background: #f0fdf4; border-top: 1px solid #bbf7d0; display: none;">
+                <div style="font-size: 12px; font-weight: 600; color: #166534; margin-bottom: 8px;">KI-Verbesserungsvorschläge</div>
+                <div id="kiRapportSuggestionsList"></div>
+            </div>
+            <!-- Aktionen -->
+            <div style="padding: 15px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <button onclick="kiChat.applyToForm()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600;">In Formular übernehmen</button>
+            </div>
+        </div>
+
+        <!-- TAB 3: ALLE EINGABEN (BEARBEITBAR) -->
+        <div id="kiTabContentEingaben" class="ki-tab-content" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+            <div style="flex: 1; overflow-y: auto; padding: 15px; max-height: 400px;">
+                <div style="font-weight: 600; font-size: 14px; color: #475569; margin-bottom: 15px;">Alle deine Eingaben (bearbeitbar)</div>
+                <div id="kiEingabenList">
+                    <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                        <div style="font-size: 40px; margin-bottom: 10px;">💬</div>
+                        <div>Noch keine Eingaben vorhanden.</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Neue Eingabe hinzufügen -->
+            <div style="padding: 15px; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="kiNewEingabeInput" placeholder="Neue Eingabe hinzufügen..." style="flex: 1; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px;">
+                    <button onclick="kiChat.addManualEntry()" style="padding: 10px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 13px;">+</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- KI-Assistent Toggle Button -->
+    <!-- Floating KI-Button (verbessert ohne Copy-Problem) -->
     <button id="kiAssistentToggle" onclick="toggleKIAssistent()" style="
         position: fixed;
         bottom: 20px;
         right: 20px;
-        width: 56px;
-        height: 56px;
+        width: 60px;
+        height: 60px;
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         border: none;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
         cursor: pointer;
         z-index: 9999;
-        font-size: 24px;
+        font-size: 28px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: transform 0.2s, box-shadow 0.2s;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
     ">
-        <span id="kiToggleIcon">🤖</span>
+        <span id="kiToggleIcon" style="pointer-events: none;">🤖</span>
     </button>
+
+    <!-- Eingaben-Zähler Badge -->
+    <div id="kiEingabenBadge" style="
+        position: fixed;
+        bottom: 68px;
+        right: 20px;
+        background: #ef4444;
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 10px;
+        z-index: 10000;
+        display: none;
+        pointer-events: none;
+    ">0</div>
 
     <script>
         // ===== GLOBAL VARIABLES =====
@@ -3371,9 +3402,9 @@ Antworte NUR mit den Vorschlägen, keine Erklärung. Auf Deutsch.`;
 
         // ===== KI-ASSISTENT HELPER FUNKTIONEN =====
 
-        // Toggle KI-Assistent Panel
+        // Toggle KI-Assistent Panel (NEUES CHAT-SYSTEM)
         function toggleKIAssistent() {
-            const panel = document.getElementById('kiAssistentPanel');
+            const panel = document.getElementById('kiChatPanel');
             const btn = document.getElementById('kiAssistentToggle');
             const icon = document.getElementById('kiToggleIcon');
 
@@ -3383,13 +3414,803 @@ Antworte NUR mit den Vorschlägen, keine Erklärung. Auf Deutsch.`;
                 panel.style.display = 'flex';
                 if (icon) icon.textContent = '✕';
                 if (btn) btn.style.transform = 'rotate(90deg)';
-                kiAssistent.updateAssistentPanel();
+                kiChat.updateUI();
             } else {
                 panel.style.display = 'none';
                 if (icon) icon.textContent = '🤖';
                 if (btn) btn.style.transform = 'rotate(0deg)';
             }
         }
+
+        // Tab-Wechsel im KI-Chat
+        function switchKITab(tabName) {
+            // Alle Tabs deaktivieren
+            document.querySelectorAll('.ki-tab-btn').forEach(btn => {
+                btn.style.background = 'rgba(255,255,255,0.2)';
+                btn.style.color = 'white';
+            });
+            document.querySelectorAll('.ki-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+
+            // Gewählten Tab aktivieren
+            const tabBtn = document.getElementById('kiTab' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+            const tabContent = document.getElementById('kiTabContent' + tabName.charAt(0).toUpperCase() + tabName.slice(1));
+
+            if (tabBtn) {
+                tabBtn.style.background = 'rgba(255,255,255,0.9)';
+                tabBtn.style.color = '#667eea';
+            }
+            if (tabContent) {
+                tabContent.style.display = 'flex';
+            }
+
+            // UI aktualisieren
+            if (tabName === 'rapport') {
+                kiChat.refreshRapport();
+            } else if (tabName === 'eingaben') {
+                kiChat.updateEingabenList();
+            }
+        }
+
+        // ===== NEUES KI-CHAT-SYSTEM =====
+        const kiChat = {
+            // Alle gesammelten Eingaben
+            eingaben: [],
+
+            // Chat-Verlauf
+            chatHistory: [],
+
+            // Aktuelle Aufnahme
+            isRecording: false,
+            recognition: null,
+            currentText: '',
+
+            // Initialisierung
+            init: function() {
+                this.loadFromStorage();
+                this.updateBadge();
+            },
+
+            // Speichern in localStorage
+            saveToStorage: function() {
+                localStorage.setItem('kiChat_eingaben', JSON.stringify(this.eingaben));
+                localStorage.setItem('kiChat_history', JSON.stringify(this.chatHistory));
+            },
+
+            // Laden aus localStorage
+            loadFromStorage: function() {
+                try {
+                    const eingaben = localStorage.getItem('kiChat_eingaben');
+                    const history = localStorage.getItem('kiChat_history');
+                    if (eingaben) this.eingaben = JSON.parse(eingaben);
+                    if (history) this.chatHistory = JSON.parse(history);
+                } catch(e) {
+                    console.log('KI-Chat laden fehlgeschlagen:', e);
+                }
+            },
+
+            // Eingabe hinzufügen
+            addEingabe: function(text, type = 'sprache') {
+                if (!text || !text.trim()) return;
+
+                const eingabe = {
+                    id: Date.now(),
+                    text: text.trim(),
+                    type: type,
+                    zeit: new Date().toLocaleTimeString('de-DE'),
+                    datum: new Date().toLocaleDateString('de-DE'),
+                    bearbeitet: false
+                };
+
+                this.eingaben.push(eingabe);
+                this.saveToStorage();
+                this.updateBadge();
+
+                // Chat-Nachricht hinzufügen
+                this.addUserMessage(text);
+
+                // KI analysiert und antwortet
+                this.processWithKI(text, eingabe.id);
+
+                // Auch zum alten kiAssistent hinzufügen für Kompatibilität
+                if (typeof kiAssistent !== 'undefined') {
+                    kiAssistent.addToKontext('taetigkeit', text);
+                }
+
+                return eingabe;
+            },
+
+            // User-Nachricht zum Chat hinzufügen
+            addUserMessage: function(text) {
+                const messagesEl = document.getElementById('kiChatMessages');
+                if (!messagesEl) return;
+
+                const messageDiv = document.createElement('div');
+                messageDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 15px; flex-direction: row-reverse;';
+                messageDiv.innerHTML = `
+                    <div style="width: 36px; height: 36px; background: #e0f2fe; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">👤</div>
+                    <div style="background: #667eea; color: white; padding: 12px 15px; border-radius: 15px 0 15px 15px; max-width: 85%;">
+                        <div style="font-size: 13px;">${escapeHtml(text)}</div>
+                        <div style="font-size: 10px; opacity: 0.7; margin-top: 5px; text-align: right;">${new Date().toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'})}</div>
+                    </div>
+                `;
+                messagesEl.appendChild(messageDiv);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+
+                this.chatHistory.push({ role: 'user', text: text, time: Date.now() });
+                this.saveToStorage();
+            },
+
+            // KI-Nachricht zum Chat hinzufügen
+            addBotMessage: function(text, isTyping = false) {
+                const messagesEl = document.getElementById('kiChatMessages');
+                if (!messagesEl) return;
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'ki-bot-message';
+                messageDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 15px;';
+                messageDiv.innerHTML = `
+                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">🤖</div>
+                    <div style="background: #f1f5f9; padding: 12px 15px; border-radius: 0 15px 15px 15px; max-width: 85%;">
+                        <div style="font-size: 13px; color: #334155;" class="ki-message-text">${isTyping ? '<em>schreibt...</em>' : escapeHtml(text)}</div>
+                    </div>
+                `;
+                messagesEl.appendChild(messageDiv);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+
+                if (!isTyping) {
+                    this.chatHistory.push({ role: 'bot', text: text, time: Date.now() });
+                    this.saveToStorage();
+                }
+
+                return messageDiv;
+            },
+
+            // KI verarbeitet Eingabe und antwortet
+            processWithKI: async function(text, eingabeId) {
+                // Zeige "schreibt..." Animation
+                const typingMsg = this.addBotMessage('', true);
+
+                try {
+                    // Versuche echte KI-Antwort zu bekommen
+                    const response = await this.getKIResponse(text);
+
+                    // Entferne "schreibt..." und zeige echte Antwort
+                    if (typingMsg) {
+                        const textEl = typingMsg.querySelector('.ki-message-text');
+                        if (textEl) {
+                            textEl.innerHTML = escapeHtml(response);
+                        }
+                    }
+
+                    this.chatHistory.push({ role: 'bot', text: response, time: Date.now() });
+                    this.saveToStorage();
+
+                } catch(e) {
+                    console.error('KI-Fehler:', e);
+                    if (typingMsg) {
+                        const textEl = typingMsg.querySelector('.ki-message-text');
+                        if (textEl) {
+                            textEl.innerHTML = 'Ich habe das notiert! Du kannst im "Rapport" Tab sehen was ich bisher gesammelt habe.';
+                        }
+                    }
+                }
+            },
+
+            // Hole KI-Antwort
+            getKIResponse: async function(userText) {
+                // Kontext aus bisherigen Eingaben
+                const context = this.eingaben.map(e => e.text).join('\n');
+
+                const prompt = `Du bist ein freundlicher KI-Assistent für Fliesenleger-Rapporte auf Deutsch.
+Der Benutzer hat gerade gesagt: "${userText}"
+
+Bisherige Eingaben heute:
+${context || 'Keine bisherigen Eingaben'}
+
+Reagiere kurz und hilfreich:
+1. Bestätige was du verstanden hast
+2. Gib einen kurzen Verbesserungsvorschlag oder frage nach fehlenden Details
+3. Sei freundlich und professionell
+
+Antworte in 1-3 kurzen Sätzen auf Deutsch.`;
+
+                // Versuche zuerst Groq, dann Gemini, dann Pollinations
+                const groqKey = localStorage.getItem('groqApiKey');
+                const geminiKey = localStorage.getItem('geminiApiKey');
+
+                if (groqKey) {
+                    try {
+                        const result = await callGroqAPI(prompt, groqKey);
+                        if (result) return result;
+                    } catch(e) { console.log('Groq failed:', e); }
+                }
+
+                if (geminiKey) {
+                    try {
+                        const result = await callGeminiAPI(prompt, geminiKey);
+                        if (result) return result;
+                    } catch(e) { console.log('Gemini failed:', e); }
+                }
+
+                // Fallback: Pollinations (kostenlos)
+                try {
+                    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+                    if (response.ok) {
+                        const text = await response.text();
+                        return text.trim();
+                    }
+                } catch(e) { console.log('Pollinations failed:', e); }
+
+                // Fallback: Lokale intelligente Antwort
+                return this.generateLocalResponse(userText);
+            },
+
+            // Lokale intelligente Antwort generieren
+            generateLocalResponse: function(text) {
+                const lower = text.toLowerCase();
+                const responses = [];
+
+                // Arbeitsanalyse
+                if (lower.includes('fliese') || lower.includes('verleg')) {
+                    responses.push('Gut, Fliesenarbeiten notiert!');
+                    if (!lower.includes('m²') && !lower.includes('qm') && !lower.includes('quadrat')) {
+                        responses.push('Wie viele m² wurden verlegt?');
+                    }
+                }
+
+                if (lower.includes('fug') || lower.includes('silikon')) {
+                    responses.push('Verfugungsarbeiten erfasst.');
+                }
+
+                if (lower.includes('stunde') || lower.match(/\d+\s*h/)) {
+                    responses.push('Arbeitszeit notiert.');
+                }
+
+                // Personal erkennen
+                if (lower.includes('mann') || lower.includes('person') || lower.includes('leute') || lower.includes('mitarbeiter')) {
+                    responses.push('Personal erfasst.');
+                }
+
+                // Material erkennen
+                if (lower.includes('material') || lower.includes('kleber') || lower.includes('mörtel')) {
+                    responses.push('Material notiert.');
+                }
+
+                // Standard-Antwort
+                if (responses.length === 0) {
+                    responses.push('Das habe ich notiert.');
+
+                    // Intelligente Nachfragen
+                    if (this.eingaben.length < 2) {
+                        responses.push('Erzähl mir mehr über deinen Tag!');
+                    } else if (!this.eingaben.some(e => e.text.toLowerCase().includes('stunde'))) {
+                        responses.push('Wie lange hast du heute gearbeitet?');
+                    } else if (!this.eingaben.some(e => e.text.toLowerCase().includes('baustelle') || e.text.toLowerCase().includes('kunde'))) {
+                        responses.push('Bei welchem Kunden warst du?');
+                    }
+                }
+
+                return responses.join(' ');
+            },
+
+            // Badge aktualisieren
+            updateBadge: function() {
+                const badge = document.getElementById('kiEingabenBadge');
+                if (badge) {
+                    if (this.eingaben.length > 0) {
+                        badge.textContent = this.eingaben.length;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+            },
+
+            // UI aktualisieren
+            updateUI: function() {
+                this.updateBadge();
+                this.updateEingabenList();
+            },
+
+            // Eingaben-Liste aktualisieren (Tab 3)
+            updateEingabenList: function() {
+                const listEl = document.getElementById('kiEingabenList');
+                if (!listEl) return;
+
+                if (this.eingaben.length === 0) {
+                    listEl.innerHTML = `
+                        <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">💬</div>
+                            <div>Noch keine Eingaben vorhanden.</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = this.eingaben.map((e, idx) => `
+                    <div class="ki-eingabe-item" data-id="${e.id}" style="background: #f8fafc; border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid #e2e8f0;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #94a3b8; margin-bottom: 5px;">${e.zeit} - ${e.type === 'sprache' ? '🎤 Sprache' : '⌨️ Text'}</div>
+                                <div class="eingabe-text" style="font-size: 13px; color: #334155; user-select: text;">${escapeHtml(e.text)}</div>
+                            </div>
+                            <div style="display: flex; gap: 5px;">
+                                <button onclick="kiChat.editEingabe(${e.id})" style="background: #667eea; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px;">✏️</button>
+                                <button onclick="kiChat.deleteEingabe(${e.id})" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            },
+
+            // Eingabe bearbeiten
+            editEingabe: function(id) {
+                const eingabe = this.eingaben.find(e => e.id === id);
+                if (!eingabe) return;
+
+                const newText = prompt('Eingabe bearbeiten:', eingabe.text);
+                if (newText !== null && newText.trim()) {
+                    eingabe.text = newText.trim();
+                    eingabe.bearbeitet = true;
+                    this.saveToStorage();
+                    this.updateEingabenList();
+                    showToast('Eingabe aktualisiert', 'success');
+                }
+            },
+
+            // Eingabe löschen
+            deleteEingabe: function(id) {
+                if (confirm('Diese Eingabe wirklich löschen?')) {
+                    this.eingaben = this.eingaben.filter(e => e.id !== id);
+                    this.saveToStorage();
+                    this.updateEingabenList();
+                    this.updateBadge();
+                    showToast('Eingabe gelöscht', 'info');
+                }
+            },
+
+            // Manuelle Eingabe hinzufügen
+            addManualEntry: function() {
+                const input = document.getElementById('kiNewEingabeInput');
+                if (!input || !input.value.trim()) {
+                    showToast('Bitte Text eingeben', 'info');
+                    return;
+                }
+
+                this.addEingabe(input.value.trim(), 'manuell');
+                input.value = '';
+                showToast('Eingabe hinzugefügt', 'success');
+            },
+
+            // Rapport generieren (Tab 2)
+            refreshRapport: async function() {
+                const contentEl = document.getElementById('kiRapportContent');
+                const suggestionsEl = document.getElementById('kiRapportSuggestions');
+                const suggestionsListEl = document.getElementById('kiRapportSuggestionsList');
+
+                if (!contentEl) return;
+
+                if (this.eingaben.length === 0) {
+                    contentEl.innerHTML = `
+                        <div style="text-align: center; padding: 30px; color: #94a3b8;">
+                            <div style="font-size: 40px; margin-bottom: 10px;">📋</div>
+                            <div>Noch keine Eingaben vorhanden.</div>
+                            <div style="font-size: 12px; margin-top: 5px;">Sprich mit mir im Chat-Tab!</div>
+                        </div>
+                    `;
+                    if (suggestionsEl) suggestionsEl.style.display = 'none';
+                    return;
+                }
+
+                // Zeige Lade-Animation
+                contentEl.innerHTML = '<div style="text-align: center; padding: 20px;"><div style="font-size: 30px;">⏳</div><div style="margin-top: 10px;">Erstelle Rapport-Entwurf...</div></div>';
+
+                try {
+                    // Generiere Rapport mit KI
+                    const rapport = await this.generateRapport();
+
+                    contentEl.innerHTML = `
+                        <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #94a3b8;">Datum: ${new Date().toLocaleDateString('de-DE')}</div>
+                            <div style="font-size: 11px; color: #94a3b8;">${this.eingaben.length} Eingaben verarbeitet</div>
+                        </div>
+
+                        ${rapport.baustelle ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 600;">BAUSTELLE</div>
+                            <div style="font-size: 14px; color: #334155;">${escapeHtml(rapport.baustelle)}</div>
+                        </div>` : ''}
+
+                        ${rapport.taetigkeiten && rapport.taetigkeiten.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 600;">TÄTIGKEITEN</div>
+                            ${rapport.taetigkeiten.map(t => `
+                                <div style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                                    ${t.menge ? `<div style="font-weight: 600; color: #667eea;">${t.menge} ${t.einheit || ''}</div>` : ''}
+                                    <div style="flex: 1; color: #334155;">${escapeHtml(t.beschreibung)}</div>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+
+                        ${rapport.material ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 600;">MATERIAL</div>
+                            <div style="font-size: 13px; color: #334155;">${escapeHtml(rapport.material)}</div>
+                        </div>` : ''}
+
+                        ${rapport.personal && rapport.personal.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 600;">PERSONAL</div>
+                            ${rapport.personal.map(p => `
+                                <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                                    <span>${escapeHtml(p.name)}</span>
+                                    <span style="color: #667eea; font-weight: 600;">${p.stunden}h</span>
+                                </div>
+                            `).join('')}
+                        </div>` : ''}
+
+                        ${rapport.stunden ? `
+                        <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 11px; color: #166534;">GESAMTSTUNDEN</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #059669;">${rapport.stunden}h</div>
+                        </div>` : ''}
+                    `;
+
+                    // Zeige Verbesserungsvorschläge
+                    if (rapport.vorschlaege && rapport.vorschlaege.length > 0 && suggestionsEl && suggestionsListEl) {
+                        suggestionsEl.style.display = 'block';
+                        suggestionsListEl.innerHTML = rapport.vorschlaege.map(v => `
+                            <div style="background: white; padding: 8px 10px; border-radius: 6px; margin-bottom: 6px; font-size: 12px; color: #166534; display: flex; align-items: center; gap: 8px;">
+                                <span>💡</span>
+                                <span>${escapeHtml(v)}</span>
+                            </div>
+                        `).join('');
+                    } else if (suggestionsEl) {
+                        suggestionsEl.style.display = 'none';
+                    }
+
+                } catch(e) {
+                    console.error('Rapport-Fehler:', e);
+                    // Zeige einfache Zusammenfassung
+                    contentEl.innerHTML = `
+                        <div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">Einfache Zusammenfassung:</div>
+                        ${this.eingaben.map((e, i) => `
+                            <div style="padding: 8px 0; border-bottom: 1px solid #f1f5f9;">
+                                <span style="color: #667eea; font-weight: 600;">${i + 1}.</span>
+                                <span style="color: #334155;">${escapeHtml(e.text)}</span>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            },
+
+            // Rapport generieren mit KI
+            generateRapport: async function() {
+                const allText = this.eingaben.map(e => e.text).join('\n');
+
+                const prompt = `Du analysierst Spracheingaben eines Fliesenlegers und extrahierst strukturierte Daten.
+
+Eingaben:
+${allText}
+
+Extrahiere folgende Informationen als JSON:
+{
+    "baustelle": "Kunde/Ort falls erwähnt",
+    "taetigkeiten": [{"menge": 25, "einheit": "m²", "beschreibung": "Bodenfliesen verlegt"}],
+    "material": "verwendetes Material",
+    "personal": [{"name": "Name", "stunden": 8}],
+    "stunden": 24,
+    "vorschlaege": ["Verbesserungsvorschlag 1", "Was noch fehlt"]
+}
+
+Gib NUR valides JSON zurück, keine Erklärung.`;
+
+                // Versuche KI-APIs
+                const groqKey = localStorage.getItem('groqApiKey');
+                const geminiKey = localStorage.getItem('geminiApiKey');
+
+                if (groqKey) {
+                    try {
+                        const result = await callGroqAPI(prompt, groqKey);
+                        const json = this.extractJSON(result);
+                        if (json) return json;
+                    } catch(e) {}
+                }
+
+                if (geminiKey) {
+                    try {
+                        const result = await callGeminiAPI(prompt, geminiKey);
+                        const json = this.extractJSON(result);
+                        if (json) return json;
+                    } catch(e) {}
+                }
+
+                // Pollinations
+                try {
+                    const response = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt));
+                    if (response.ok) {
+                        const text = await response.text();
+                        const json = this.extractJSON(text);
+                        if (json) return json;
+                    }
+                } catch(e) {}
+
+                // Lokale Analyse
+                return this.analyzeLocally();
+            },
+
+            // JSON aus Text extrahieren
+            extractJSON: function(text) {
+                try {
+                    // Versuche direkt zu parsen
+                    return JSON.parse(text);
+                } catch(e) {
+                    // Versuche JSON aus Text zu extrahieren
+                    const match = text.match(/\{[\s\S]*\}/);
+                    if (match) {
+                        try {
+                            return JSON.parse(match[0]);
+                        } catch(e2) {}
+                    }
+                }
+                return null;
+            },
+
+            // Lokale Analyse ohne KI
+            analyzeLocally: function() {
+                const allText = this.eingaben.map(e => e.text).join(' ').toLowerCase();
+                const result = {
+                    baustelle: '',
+                    taetigkeiten: [],
+                    material: '',
+                    personal: [],
+                    stunden: 0,
+                    vorschlaege: []
+                };
+
+                // Mengenangaben finden
+                const mengenMatch = allText.match(/(\d+)\s*(qm|m²|quadratmeter)/i);
+                if (mengenMatch) {
+                    result.taetigkeiten.push({
+                        menge: parseInt(mengenMatch[1]),
+                        einheit: 'm²',
+                        beschreibung: 'Fliesenarbeiten'
+                    });
+                }
+
+                // Stunden finden
+                const stundenMatch = allText.match(/(\d+)\s*(stunden?|h\b)/i);
+                if (stundenMatch) {
+                    result.stunden = parseInt(stundenMatch[1]);
+                }
+
+                // Vorschläge
+                if (!mengenMatch) result.vorschlaege.push('Menge (m²) hinzufügen');
+                if (!stundenMatch) result.vorschlaege.push('Arbeitszeit hinzufügen');
+                if (!allText.includes('kunde') && !allText.includes('baustelle')) {
+                    result.vorschlaege.push('Baustelle/Kunde angeben');
+                }
+
+                return result;
+            },
+
+            // In Formular übernehmen
+            applyToForm: async function() {
+                if (this.eingaben.length === 0) {
+                    showToast('Keine Eingaben zum Übernehmen', 'info');
+                    return;
+                }
+
+                showToast('Übernehme in Formular...', 'info');
+
+                try {
+                    const rapport = await this.generateRapport();
+
+                    // Baustelle
+                    if (rapport.baustelle) {
+                        const el = document.getElementById('baustelle');
+                        if (el) el.value = rapport.baustelle;
+                    }
+
+                    // Tätigkeiten
+                    if (rapport.taetigkeiten && rapport.taetigkeiten.length > 0) {
+                        rapport.taetigkeiten.forEach(t => {
+                            if (typeof addTaetigkeitenRow === 'function') {
+                                addTaetigkeitenRow(t.menge, t.einheit, t.beschreibung);
+                            }
+                        });
+                    }
+
+                    // Material
+                    if (rapport.material) {
+                        const el = document.getElementById('materialText');
+                        if (el) el.value = rapport.material;
+                    }
+
+                    // Zum Formular-Tab wechseln
+                    if (typeof showTab === 'function') {
+                        showTab('neu');
+                    }
+
+                    showToast('Daten in Formular übernommen!', 'success');
+
+                } catch(e) {
+                    console.error('Übernahme-Fehler:', e);
+                    showToast('Fehler bei Übernahme', 'error');
+                }
+            },
+
+            // Session zurücksetzen
+            reset: function() {
+                if (confirm('Alle Eingaben und Chat-Verlauf löschen?')) {
+                    this.eingaben = [];
+                    this.chatHistory = [];
+                    localStorage.removeItem('kiChat_eingaben');
+                    localStorage.removeItem('kiChat_history');
+                    this.updateUI();
+
+                    // Chat zurücksetzen
+                    const messagesEl = document.getElementById('kiChatMessages');
+                    if (messagesEl) {
+                        messagesEl.innerHTML = `
+                            <div class="ki-message ki-message-bot" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;">🤖</div>
+                                <div style="background: #f1f5f9; padding: 12px 15px; border-radius: 0 15px 15px 15px; max-width: 85%;">
+                                    <div style="font-size: 13px; color: #334155;">Alles klar, wir starten neu! Was hast du heute gemacht?</div>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    showToast('Chat zurückgesetzt', 'info');
+                }
+            }
+        };
+
+        // ===== KI-CHAT SPRACHEINGABE =====
+        let kiChatRecognition = null;
+        let kiChatIsRecording = false;
+        let kiChatFullText = '';
+
+        function startKIChatRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            if (kiChatIsRecording) return;
+
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Spracheingabe nicht verfügbar', 'error');
+                return;
+            }
+
+            kiChatIsRecording = true;
+            kiChatFullText = '';
+
+            const btn = document.getElementById('kiChatMicBtn');
+            const statusEl = document.getElementById('kiChatRecordingStatus');
+            const previewEl = document.getElementById('kiChatPreview');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                btn.style.transform = 'scale(1.1)';
+            }
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                document.getElementById('kiChatRecordingText').textContent = '🎤 Ich höre zu...';
+            }
+            if (previewEl) {
+                previewEl.style.display = 'none';
+                previewEl.textContent = '';
+            }
+
+            startKIChatSession();
+        }
+
+        function startKIChatSession() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            kiChatRecognition = new SpeechRecognition();
+
+            kiChatRecognition.lang = 'de-DE';
+            kiChatRecognition.continuous = true;
+            kiChatRecognition.interimResults = true;
+
+            let sessionText = '';
+            let interimText = '';
+
+            kiChatRecognition.onresult = function(event) {
+                interimText = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        sessionText += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimText += event.results[i][0].transcript;
+                    }
+                }
+
+                const previewEl = document.getElementById('kiChatPreview');
+                const fullPreview = (kiChatFullText + sessionText + interimText).trim();
+                if (previewEl && fullPreview) {
+                    previewEl.style.display = 'block';
+                    previewEl.textContent = '"' + fullPreview + '"';
+                }
+            };
+
+            kiChatRecognition.onend = function() {
+                kiChatFullText += sessionText;
+
+                if (kiChatIsRecording) {
+                    setTimeout(() => {
+                        if (kiChatIsRecording) {
+                            startKIChatSession();
+                        }
+                    }, 100);
+                }
+            };
+
+            kiChatRecognition.onerror = function(event) {
+                if (event.error === 'aborted' || event.error === 'no-speech') {
+                    if (kiChatIsRecording) {
+                        kiChatFullText += sessionText;
+                        setTimeout(() => {
+                            if (kiChatIsRecording) startKIChatSession();
+                        }, 100);
+                    }
+                    return;
+                }
+                console.error('KI-Chat Speech Error:', event.error);
+            };
+
+            try {
+                kiChatRecognition.start();
+            } catch (e) {
+                console.error('KI-Chat start error:', e);
+            }
+        }
+
+        function stopKIChatRecording(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            if (!kiChatIsRecording) return;
+
+            kiChatIsRecording = false;
+
+            if (kiChatRecognition) {
+                try {
+                    kiChatRecognition.stop();
+                } catch(e) {}
+                kiChatRecognition = null;
+            }
+
+            const btn = document.getElementById('kiChatMicBtn');
+            const statusEl = document.getElementById('kiChatRecordingStatus');
+            const previewEl = document.getElementById('kiChatPreview');
+
+            if (btn) {
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                btn.style.transform = 'scale(1)';
+            }
+            if (statusEl) statusEl.style.display = 'none';
+            if (previewEl) previewEl.style.display = 'none';
+
+            const text = kiChatFullText.trim();
+
+            if (text && text.length > 2) {
+                kiChat.addEingabe(text, 'sprache');
+            }
+        }
+
+        // Initialisiere KI-Chat beim Laden
+        document.addEventListener('DOMContentLoaded', function() {
+            kiChat.init();
+        });
 
         // Zeige KI-Vorschläge Modal
         function zeigeKIVorschlaege(vorschlaege) {
@@ -4392,8 +5213,14 @@ Text: ${prompt}`
             if (bEl) bEl.textContent = wb.gelernteBeispiele.length;
         }
 
-        // Agent-Aufnahme starten
-        function startAgentRecording() {
+        // Agent-Aufnahme starten (mit Event-Handling gegen Copy-Problem)
+        function startAgentRecording(event) {
+            // Verhindere Kopier-Popup auf Touch-Geräten
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
             if (!isKIAvailable()) {
                 showToast('⚠️ Bitte erst KI-API-Key einrichten (⚙️ KI Button)', 'error');
                 openKISettings();
@@ -4486,8 +5313,14 @@ Text: ${prompt}`
             }
         }
 
-        // Agent-Aufnahme stoppen und verarbeiten
-        async function stopAgentRecording() {
+        // Agent-Aufnahme stoppen und verarbeiten (mit Event-Handling)
+        async function stopAgentRecording(event) {
+            // Verhindere Kopier-Popup auf Touch-Geräten
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
             if (!agentIsRecording) return;
 
             agentIsRecording = false;
