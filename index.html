@@ -6306,10 +6306,208 @@ Wichtig:
             return simpleTextParsing(text);
         }
 
-        // Kostenlose KI API (keine API-Key nötig) - v3.4 mit mehreren Fallbacks
-        async function callFreeAI(systemPrompt, userPrompt) {
-            // Versuche mehrere kostenlose Endpoints (in Reihenfolge der Zuverlässigkeit)
-            const freeEndpoints = [
+        // ===== v3.5: KI-ENSEMBLE SYSTEM (Alle KIs arbeiten zusammen) =====
+
+        // KI-Statistiken laden/speichern
+        function getKIStats() {
+            return JSON.parse(localStorage.getItem('kiEnsembleStats') || '{}');
+        }
+
+        function saveKIStats(stats) {
+            localStorage.setItem('kiEnsembleStats', JSON.stringify(stats));
+        }
+
+        // KI-Erfolg tracken
+        function trackKISuccess(kiName, success, responseTime, responseQuality) {
+            const stats = getKIStats();
+            if (!stats[kiName]) {
+                stats[kiName] = { success: 0, fail: 0, totalTime: 0, avgQuality: 0, calls: 0 };
+            }
+            stats[kiName].calls++;
+            if (success) {
+                stats[kiName].success++;
+                stats[kiName].totalTime += responseTime;
+                // Gleitender Durchschnitt für Qualität
+                stats[kiName].avgQuality = (stats[kiName].avgQuality * (stats[kiName].success - 1) + responseQuality) / stats[kiName].success;
+            } else {
+                stats[kiName].fail++;
+            }
+            saveKIStats(stats);
+            console.log(`📊 KI-Stats für ${kiName}:`, stats[kiName]);
+        }
+
+        // KI-Score berechnen (für Ranking)
+        function getKIScore(kiName) {
+            const stats = getKIStats();
+            if (!stats[kiName] || stats[kiName].calls === 0) return 50; // Neutral für neue KIs
+
+            const successRate = stats[kiName].success / stats[kiName].calls;
+            const avgTime = stats[kiName].totalTime / Math.max(1, stats[kiName].success);
+            const quality = stats[kiName].avgQuality || 50;
+
+            // Score: 40% Erfolgsrate + 30% Geschwindigkeit + 30% Qualität
+            const timeScore = Math.max(0, 100 - (avgTime / 100)); // Schneller = besser
+            return (successRate * 100 * 0.4) + (timeScore * 0.3) + (quality * 0.3);
+        }
+
+        // Antwort-Qualität bewerten
+        function scoreResponse(response, originalPrompt) {
+            if (!response) return 0;
+
+            let score = 0;
+            const text = typeof response === 'string' ? response : JSON.stringify(response);
+
+            // Länge (10-500 Zeichen ideal)
+            if (text.length > 10) score += 20;
+            if (text.length > 50) score += 20;
+            if (text.length > 200) score += 10;
+            if (text.length > 1000) score -= 10; // Zu lang
+
+            // Enthält relevante Begriffe
+            const keywords = ['fliesen', 'verlegt', 'material', 'stunden', 'mann', 'baustelle', 'kunde'];
+            keywords.forEach(kw => {
+                if (text.toLowerCase().includes(kw)) score += 5;
+            });
+
+            // JSON-Struktur vorhanden
+            if (response && typeof response === 'object') {
+                if (response.taetigkeiten) score += 15;
+                if (response.baustelle) score += 10;
+                if (response.personal) score += 10;
+            }
+
+            return Math.min(100, Math.max(0, score));
+        }
+
+        // ===== HAUPT-ENSEMBLE-FUNKTION =====
+        async function callKIEnsemble(systemPrompt, userPrompt, options = {}) {
+            const {
+                timeout = 12000,      // 12s Timeout pro KI
+                minResponses = 1,     // Mindestens 1 Antwort warten
+                maxWait = 8000,       // Max. 8s auf alle warten
+                returnBest = true     // Beste Antwort zurückgeben
+            } = options;
+
+            console.log('🤖 KI-Ensemble gestartet (alle KIs parallel)...');
+
+            // Alle verfügbaren KIs
+            const endpoints = getKIEndpoints(systemPrompt, userPrompt);
+
+            // Nach Score sortieren (beste zuerst)
+            endpoints.sort((a, b) => getKIScore(b.name) - getKIScore(a.name));
+            console.log('📊 KI-Ranking:', endpoints.map(e => `${e.name}: ${getKIScore(e.name).toFixed(1)}`).join(', '));
+
+            // Alle KIs parallel starten
+            const results = [];
+            const promises = endpoints.map(async (endpoint, index) => {
+                const startTime = Date.now();
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                    const fetchOptions = {
+                        method: endpoint.method,
+                        headers: endpoint.headers,
+                        signal: controller.signal
+                    };
+                    if (endpoint.body) fetchOptions.body = endpoint.body;
+
+                    const response = await fetch(endpoint.url, fetchOptions);
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        const result = await endpoint.parseResponse(response);
+                        const responseTime = Date.now() - startTime;
+                        const quality = scoreResponse(result, userPrompt);
+
+                        if (result) {
+                            console.log(`✅ ${endpoint.name} erfolgreich (${responseTime}ms, Q:${quality})`);
+                            trackKISuccess(endpoint.name, true, responseTime, quality);
+
+                            results.push({
+                                name: endpoint.name,
+                                result: result,
+                                time: responseTime,
+                                quality: quality,
+                                score: getKIScore(endpoint.name)
+                            });
+                            return { success: true, name: endpoint.name, result, time: responseTime, quality };
+                        }
+                    }
+                    trackKISuccess(endpoint.name, false, Date.now() - startTime, 0);
+                    return { success: false, name: endpoint.name };
+                } catch (e) {
+                    trackKISuccess(endpoint.name, false, Date.now() - startTime, 0);
+                    console.log(`❌ ${endpoint.name}: ${e.message}`);
+                    return { success: false, name: endpoint.name, error: e.message };
+                }
+            });
+
+            // Warte auf erste erfolgreiche Antwort ODER maxWait
+            const racePromise = new Promise(resolve => {
+                let resolved = false;
+
+                // Sobald minResponses da sind, resolve
+                const checkResults = () => {
+                    if (!resolved && results.length >= minResponses) {
+                        resolved = true;
+                        resolve(results);
+                    }
+                };
+
+                // Alle Promises überwachen
+                promises.forEach(p => p.then(() => checkResults()));
+
+                // Nach maxWait trotzdem resolve
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve(results);
+                    }
+                }, maxWait);
+            });
+
+            await racePromise;
+
+            // Warte noch kurz auf weitere Ergebnisse
+            await new Promise(r => setTimeout(r, 500));
+
+            if (results.length === 0) {
+                console.log('❌ Keine KI hat geantwortet');
+                return null;
+            }
+
+            // Beste Antwort auswählen
+            if (returnBest && results.length > 1) {
+                // Sortiere nach: Qualität (40%) + Geschwindigkeit (30%) + historischer Score (30%)
+                results.sort((a, b) => {
+                    const scoreA = (a.quality * 0.4) + ((100 - a.time/100) * 0.3) + (a.score * 0.3);
+                    const scoreB = (b.quality * 0.4) + ((100 - b.time/100) * 0.3) + (b.score * 0.3);
+                    return scoreB - scoreA;
+                });
+                console.log(`🏆 Beste Antwort: ${results[0].name} (Q:${results[0].quality}, ${results[0].time}ms)`);
+            }
+
+            // Speichere welche KI gewonnen hat (für Lernen)
+            const winner = results[0];
+            const ensembleHistory = JSON.parse(localStorage.getItem('kiEnsembleHistory') || '[]');
+            ensembleHistory.push({
+                winner: winner.name,
+                quality: winner.quality,
+                time: winner.time,
+                alternatives: results.length - 1,
+                timestamp: new Date().toISOString()
+            });
+            // Max 100 Einträge
+            if (ensembleHistory.length > 100) ensembleHistory.shift();
+            localStorage.setItem('kiEnsembleHistory', JSON.stringify(ensembleHistory));
+
+            return results[0].result;
+        }
+
+        // KI-Endpoints für Ensemble
+        function getKIEndpoints(systemPrompt, userPrompt) {
+            return [
                 // 1. Pollinations mit Mistral (schnell & zuverlässig)
                 {
                     name: 'Pollinations-Mistral',
@@ -6417,43 +6615,17 @@ Wichtig:
                     }
                 }
             ];
-
-            for (const endpoint of freeEndpoints) {
-                try {
-                    console.log(`🔄 Versuche ${endpoint.name}...`);
-                    const fetchOptions = {
-                        method: endpoint.method,
-                        headers: endpoint.headers
-                    };
-                    if (endpoint.body) fetchOptions.body = endpoint.body;
-
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s Timeout
-
-                    const response = await fetch(endpoint.url, {
-                        ...fetchOptions,
-                        signal: controller.signal
-                    });
-
-                    clearTimeout(timeoutId);
-
-                    if (response.ok) {
-                        const result = await endpoint.parseResponse(response);
-                        if (result) {
-                            console.log(`✅ ${endpoint.name} erfolgreich!`);
-                            return result;
-                        }
-                    }
-                } catch (e) {
-                    console.log(`❌ ${endpoint.name} fehlgeschlagen:`, e.message);
-                }
-            }
-
-            return null;
         }
 
-        // Einfache KI-Anfrage für Textverbesserung (ohne JSON-Parsing)
+        // Wrapper für alte callFreeAI Aufrufe - nutzt jetzt Ensemble
+        async function callFreeAI(systemPrompt, userPrompt) {
+            return await callKIEnsemble(systemPrompt, userPrompt);
+        }
+
+        // Einfache KI-Anfrage für Textverbesserung (PARALLEL - v3.5 Ensemble)
         async function callFreeAISimple(prompt) {
+            console.log('🤖 Simple KI-Ensemble gestartet (parallel)...');
+
             const endpoints = [
                 { name: 'Pollinations-Mistral', url: 'https://text.pollinations.ai/', model: 'mistral' },
                 { name: 'Pollinations-OpenAI', url: 'https://text.pollinations.ai/', model: 'openai' },
@@ -6461,9 +6633,15 @@ Wichtig:
                 { name: 'Pollinations-Claude', url: 'https://text.pollinations.ai/', model: 'claude' }
             ];
 
-            for (const ep of endpoints) {
+            // Nach KI-Score sortieren
+            endpoints.sort((a, b) => getKIScore(b.name) - getKIScore(a.name));
+
+            const results = [];
+            const promises = endpoints.map(async (ep) => {
+                const startTime = Date.now();
                 try {
-                    console.log(`🔄 Simple KI: ${ep.name}...`);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
                     let response;
                     if (ep.isBlackbox) {
@@ -6473,7 +6651,8 @@ Wichtig:
                             body: JSON.stringify({
                                 messages: [{ role: 'user', content: prompt }],
                                 maxTokens: 1024
-                            })
+                            }),
+                            signal: controller.signal
                         });
                     } else {
                         response = await fetch(ep.url, {
@@ -6482,22 +6661,56 @@ Wichtig:
                             body: JSON.stringify({
                                 messages: [{ role: 'user', content: prompt }],
                                 model: ep.model
-                            })
+                            }),
+                            signal: controller.signal
                         });
                     }
+
+                    clearTimeout(timeoutId);
+                    const responseTime = Date.now() - startTime;
 
                     if (response.ok) {
                         const text = await response.text();
                         if (text && text.length > 10) {
-                            console.log(`✅ ${ep.name} erfolgreich!`);
-                            return text.trim();
+                            const quality = Math.min(100, 30 + text.length / 10);
+                            console.log(`✅ ${ep.name} (${responseTime}ms, Q:${quality.toFixed(0)})`);
+                            trackKISuccess(ep.name, true, responseTime, quality);
+                            results.push({ name: ep.name, text: text.trim(), time: responseTime, quality });
+                            return { success: true };
                         }
                     }
+                    trackKISuccess(ep.name, false, Date.now() - startTime, 0);
                 } catch (e) {
-                    console.log(`❌ ${ep.name}:`, e.message);
+                    trackKISuccess(ep.name, false, Date.now() - startTime, 0);
+                    console.log(`❌ ${ep.name}: ${e.message}`);
                 }
-            }
-            return null;
+                return { success: false };
+            });
+
+            // Warte auf erste Antwort oder max 6 Sekunden
+            await Promise.race([
+                new Promise(resolve => {
+                    const check = setInterval(() => {
+                        if (results.length > 0) { clearInterval(check); resolve(); }
+                    }, 100);
+                }),
+                new Promise(resolve => setTimeout(resolve, 6000))
+            ]);
+
+            // Kurz warten für mehr Ergebnisse
+            await new Promise(r => setTimeout(r, 300));
+
+            if (results.length === 0) return null;
+
+            // Beste Antwort auswählen
+            results.sort((a, b) => {
+                const scoreA = (a.quality * 0.5) + ((100 - a.time/50) * 0.5);
+                const scoreB = (b.quality * 0.5) + ((100 - b.time/50) * 0.5);
+                return scoreB - scoreA;
+            });
+
+            console.log(`🏆 Beste Simple-Antwort: ${results[0].name}`);
+            return results[0].text;
         }
 
         // Einfache Textanalyse als letzter Fallback (ohne KI)
@@ -12900,7 +13113,7 @@ brew install mkcert</div>
             for (const arr of Object.values(baustellenDatenbank.formulierungen)) {
                 formCount += arr.length;
             }
-            console.log(`📊 Baustellenbericht v3.4.0 Datenbank geladen:`);
+            console.log(`📊 Baustellenbericht v3.5.0 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
 
