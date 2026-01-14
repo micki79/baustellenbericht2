@@ -2069,6 +2069,18 @@
                         3. Bei Spracheingabe erstellt KI professionelle Zusammenfassungen
                     </div>
                 </div>
+
+                <!-- Kostenlose KI Info (NEU v3.4) -->
+                <div style="background:#ecfdf5; padding:12px; border-radius:8px; border-left:4px solid #10b981; margin-top:10px;">
+                    <div style="font-size:12px; color:#065f46;">
+                        <strong>🆓 Kostenlose KI (ohne API-Key):</strong><br>
+                        Die App funktioniert auch OHNE API-Key! Wir nutzen automatisch:<br>
+                        • 🌸 Pollinations AI (Mistral, OpenAI, Claude)<br>
+                        • ⬛ BlackBox AI<br>
+                        • 🔥 DeepInfra (Llama)<br><br>
+                        <em>Mit eigenem API-Key: schnellere & bessere Antworten</em>
+                    </div>
+                </div>
             </div>
             <div style="padding:12px 20px 20px; display:flex; gap:10px;">
                 <button onclick="closeKISettings()"
@@ -6225,12 +6237,32 @@ Wichtig:
             return simpleTextParsing(text);
         }
 
-        // Kostenlose KI API (keine API-Key nötig)
+        // Kostenlose KI API (keine API-Key nötig) - v3.4 mit mehreren Fallbacks
         async function callFreeAI(systemPrompt, userPrompt) {
-            // Versuche mehrere kostenlose Endpoints
+            // Versuche mehrere kostenlose Endpoints (in Reihenfolge der Zuverlässigkeit)
             const freeEndpoints = [
+                // 1. Pollinations mit Mistral (schnell & zuverlässig)
                 {
-                    name: 'Pollinations',
+                    name: 'Pollinations-Mistral',
+                    url: 'https://text.pollinations.ai/',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        model: 'mistral',
+                        jsonMode: true
+                    }),
+                    parseResponse: async (res) => {
+                        const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                },
+                // 2. Pollinations mit OpenAI
+                {
+                    name: 'Pollinations-OpenAI',
                     url: 'https://text.pollinations.ai/',
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -6247,12 +6279,71 @@ Wichtig:
                         return parseAgentResponse(text);
                     }
                 },
+                // 3. BlackBox AI (sehr stabil, gute Qualität)
+                {
+                    name: 'BlackBox-AI',
+                    url: 'https://api.blackbox.ai/api/chat',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        previewToken: null,
+                        codeModelMode: true,
+                        agentMode: {},
+                        trendingAgentMode: {},
+                        isMicMode: false,
+                        maxTokens: 1024
+                    }),
+                    parseResponse: async (res) => {
+                        const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                },
+                // 4. Pollinations mit Claude
+                {
+                    name: 'Pollinations-Claude',
+                    url: 'https://text.pollinations.ai/',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        model: 'claude',
+                        jsonMode: true
+                    }),
+                    parseResponse: async (res) => {
+                        const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                },
+                // 5. Pollinations GET (einfacher Fallback)
                 {
                     name: 'Pollinations-GET',
-                    url: `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\n' + userPrompt)}?model=openai&json=true`,
+                    url: `https://text.pollinations.ai/${encodeURIComponent(systemPrompt + '\n\n' + userPrompt)}?model=mistral&json=true`,
                     method: 'GET',
                     parseResponse: async (res) => {
                         const text = await res.text();
+                        return parseAgentResponse(text);
+                    }
+                },
+                // 6. DeepInfra Free (Llama)
+                {
+                    name: 'DeepInfra-Llama',
+                    url: 'https://api.deepinfra.com/v1/inference/meta-llama/Llama-2-70b-chat-hf',
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        input: `[INST] <<SYS>>\n${systemPrompt}\n<</SYS>>\n\n${userPrompt} [/INST]`,
+                        max_new_tokens: 1024
+                    }),
+                    parseResponse: async (res) => {
+                        const json = await res.json();
+                        const text = json.results?.[0]?.generated_text || json.generated_text || '';
                         return parseAgentResponse(text);
                     }
                 }
@@ -6267,7 +6358,15 @@ Wichtig:
                     };
                     if (endpoint.body) fetchOptions.body = endpoint.body;
 
-                    const response = await fetch(endpoint.url, fetchOptions);
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s Timeout
+
+                    const response = await fetch(endpoint.url, {
+                        ...fetchOptions,
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
 
                     if (response.ok) {
                         const result = await endpoint.parseResponse(response);
@@ -6281,6 +6380,54 @@ Wichtig:
                 }
             }
 
+            return null;
+        }
+
+        // Einfache KI-Anfrage für Textverbesserung (ohne JSON-Parsing)
+        async function callFreeAISimple(prompt) {
+            const endpoints = [
+                { name: 'Pollinations-Mistral', url: 'https://text.pollinations.ai/', model: 'mistral' },
+                { name: 'Pollinations-OpenAI', url: 'https://text.pollinations.ai/', model: 'openai' },
+                { name: 'BlackBox-AI', url: 'https://api.blackbox.ai/api/chat', isBlackbox: true },
+                { name: 'Pollinations-Claude', url: 'https://text.pollinations.ai/', model: 'claude' }
+            ];
+
+            for (const ep of endpoints) {
+                try {
+                    console.log(`🔄 Simple KI: ${ep.name}...`);
+
+                    let response;
+                    if (ep.isBlackbox) {
+                        response = await fetch(ep.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: [{ role: 'user', content: prompt }],
+                                maxTokens: 1024
+                            })
+                        });
+                    } else {
+                        response = await fetch(ep.url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                messages: [{ role: 'user', content: prompt }],
+                                model: ep.model
+                            })
+                        });
+                    }
+
+                    if (response.ok) {
+                        const text = await response.text();
+                        if (text && text.length > 10) {
+                            console.log(`✅ ${ep.name} erfolgreich!`);
+                            return text.trim();
+                        }
+                    }
+                } catch (e) {
+                    console.log(`❌ ${ep.name}:`, e.message);
+                }
+            }
             return null;
         }
 
@@ -6472,10 +6619,10 @@ Wichtig:
             }
         }
 
-        // Text mit KI verbessern (kostenlos über Pollinations)
+        // Text mit KI verbessern (v3.4 mit Multi-Fallback)
         async function improveTextWithAI(rawText) {
-            const systemPrompt = `Du bist ein Assistent für Baustellenberichte einer Fliesenfirma.
-Deine Aufgabe: Verbessere den folgenden Text von einem handgeschriebenen Notizzettel.
+            const prompt = `Du bist ein Assistent für Baustellenberichte einer Fliesenfirma.
+Verbessere den folgenden Text von einem handgeschriebenen Notizzettel.
 
 Regeln:
 - Korrigiere Rechtschreibfehler
@@ -6483,38 +6630,43 @@ Regeln:
 - Behalte alle wichtigen Infos: Mengen, Materialien, Tätigkeiten, Namen
 - Verwende professionelle Baustellensprache
 - Wenn Mengen fehlen, lasse Platzhalter [...]
-- Antworte NUR mit dem verbesserten Text, keine Erklärungen`;
+- Antworte NUR mit dem verbesserten Text, keine Erklärungen
 
-            const userPrompt = `Bitte verbessere diesen handgeschriebenen Text:
-
+Text zum Verbessern:
 ${rawText}`;
 
             try {
-                // Versuche kostenlose KI
-                const response = await fetch('https://text.pollinations.ai/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        messages: [
-                            { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
-                        ],
-                        model: 'openai'
-                    })
-                });
+                // Versuche zuerst eigene API-Keys
+                const groqKey = localStorage.getItem('groqApiKey');
+                const geminiKey = localStorage.getItem('geminiApiKey');
 
-                if (response.ok) {
-                    const improvedText = await response.text();
-                    if (improvedText && improvedText.length > 10) {
-                        console.log('✅ KI-Verbesserung erfolgreich');
-                        return improvedText.trim();
+                if (groqKey) {
+                    const result = await callGroqAPI(prompt, groqKey);
+                    if (result) {
+                        console.log('✅ KI-Verbesserung via Groq');
+                        return result.trim();
                     }
+                }
+
+                if (geminiKey) {
+                    const result = await callGeminiAPI(prompt, geminiKey);
+                    if (result) {
+                        console.log('✅ KI-Verbesserung via Gemini');
+                        return result.trim();
+                    }
+                }
+
+                // Fallback zu kostenlosen KIs (Multi-Fallback)
+                const freeResult = await callFreeAISimple(prompt);
+                if (freeResult) {
+                    console.log('✅ KI-Verbesserung via kostenlose KI');
+                    return freeResult.trim();
                 }
             } catch (e) {
                 console.log('KI-Verbesserung fehlgeschlagen:', e);
             }
 
-            // Fallback: Einfache Bereinigung ohne KI
+            // Letzter Fallback: Einfache Bereinigung ohne KI
             return cleanupTextBasic(rawText);
         }
 
@@ -6702,7 +6854,10 @@ ${rawText}`;
             const statuses = {
                 'groq': { icon: '🚀', text: 'Groq KI (schnell & intelligent)', color: '#10b981' },
                 'gemini': { icon: '✨', text: 'Google Gemini KI', color: '#667eea' },
-                'free': { icon: '🆓', text: 'Kostenlose KI (ohne API-Key)', color: '#f59e0b' },
+                'free': { icon: '🆓', text: 'Kostenlose KI aktiv (Multi-Fallback)', color: '#f59e0b' },
+                'pollinations': { icon: '🌸', text: 'Pollinations AI (kostenlos)', color: '#ec4899' },
+                'blackbox': { icon: '⬛', text: 'BlackBox AI (kostenlos)', color: '#1f2937' },
+                'deepinfra': { icon: '🔥', text: 'DeepInfra AI (kostenlos)', color: '#f97316' },
                 'basic': { icon: '📝', text: 'Einfache Textanalyse (offline)', color: '#6b7280' },
                 'none': { icon: '❌', text: 'Keine KI verfügbar', color: '#ef4444' }
             };
@@ -12676,7 +12831,7 @@ brew install mkcert</div>
             for (const arr of Object.values(baustellenDatenbank.formulierungen)) {
                 formCount += arr.length;
             }
-            console.log(`📊 Baustellenbericht v3.3.4 Datenbank geladen:`);
+            console.log(`📊 Baustellenbericht v3.4.0 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
 
