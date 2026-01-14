@@ -6193,6 +6193,7 @@ Text: ${prompt}`
         }
 
         // Agent-Text mit KI verarbeiten
+        // v3.5.0: HAUPT-AGENT-FUNKTION mit VOLLEM ENSEMBLE (alle KIs parallel!)
         async function processAgentText(text) {
             const wb = getWissensbasis();
             const learnedExamples = getLearnedExamples();
@@ -6229,81 +6230,223 @@ Wichtig:
 - Verwende Fachbegriffe korrekt
 - Bei fehlenden Infos: null oder leeren String verwenden`;
 
+            const userPrompt = `Analysiere diesen Baustellenbericht:\n\n"${text}"`;
+
+            console.log('🤖🤖🤖 VOLLES KI-ENSEMBLE gestartet (ALLE KIs parallel!)...');
+
+            // Alle verfügbaren KIs sammeln
             const groqKey = localStorage.getItem('groqApiKey');
             const geminiKey = localStorage.getItem('geminiApiKey');
+            const allEndpoints = [];
 
-            // Versuche Groq
+            // Premium KIs hinzufügen (wenn API-Keys vorhanden)
             if (groqKey) {
-                try {
-                    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${groqKey}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: 'llama-3.1-70b-versatile',
-                            messages: [
-                                { role: 'system', content: systemPrompt },
-                                { role: 'user', content: `Analysiere diesen Baustellenbericht:\n\n"${text}"` }
-                            ],
-                            max_tokens: 1000,
-                            temperature: 0.2
-                        })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        const content = data.choices[0]?.message?.content;
-                        return parseAgentResponse(content);
+                allEndpoints.push({
+                    name: 'Groq-Llama',
+                    premium: true,
+                    call: async () => {
+                        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${groqKey}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                model: 'llama-3.1-70b-versatile',
+                                messages: [
+                                    { role: 'system', content: systemPrompt },
+                                    { role: 'user', content: userPrompt }
+                                ],
+                                max_tokens: 1000,
+                                temperature: 0.2
+                            })
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            return parseAgentResponse(data.choices[0]?.message?.content);
+                        }
+                        return null;
                     }
-                } catch (e) {
-                    console.log('Groq Agent failed:', e);
-                }
+                });
             }
 
-            // Fallback Gemini
             if (geminiKey) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [{
-                                    text: systemPrompt + `\n\nAnalysiere diesen Baustellenbericht:\n\n"${text}"`
-                                }]
-                            }],
-                            generationConfig: { maxOutputTokens: 1000, temperature: 0.2 }
-                        })
-                    });
+                allEndpoints.push({
+                    name: 'Google-Gemini',
+                    premium: true,
+                    call: async () => {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }],
+                                generationConfig: { maxOutputTokens: 1000, temperature: 0.2 }
+                            })
+                        });
+                        if (response.ok) {
+                            const data = await response.json();
+                            return parseAgentResponse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+                        }
+                        return null;
+                    }
+                });
+            }
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                        return parseAgentResponse(content);
+            // Kostenlose KIs hinzufügen (immer verfügbar)
+            const freeKIs = [
+                { name: 'Pollinations-Mistral', model: 'mistral' },
+                { name: 'Pollinations-OpenAI', model: 'openai' },
+                { name: 'Pollinations-Claude', model: 'claude' },
+                { name: 'BlackBox-AI', isBlackbox: true }
+            ];
+
+            freeKIs.forEach(ki => {
+                allEndpoints.push({
+                    name: ki.name,
+                    premium: false,
+                    call: async () => {
+                        let response;
+                        if (ki.isBlackbox) {
+                            response = await fetch('https://api.blackbox.ai/api/chat', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    messages: [
+                                        { role: 'system', content: systemPrompt },
+                                        { role: 'user', content: userPrompt }
+                                    ],
+                                    maxTokens: 1024
+                                })
+                            });
+                        } else {
+                            response = await fetch('https://text.pollinations.ai/', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    messages: [
+                                        { role: 'system', content: systemPrompt },
+                                        { role: 'user', content: userPrompt }
+                                    ],
+                                    model: ki.model,
+                                    jsonMode: true
+                                })
+                            });
+                        }
+                        if (response.ok) {
+                            const text = await response.text();
+                            return parseAgentResponse(text);
+                        }
+                        return null;
+                    }
+                });
+            });
+
+            // Nach KI-Score sortieren (beste zuerst)
+            allEndpoints.sort((a, b) => getKIScore(b.name) - getKIScore(a.name));
+            console.log(`📊 ${allEndpoints.length} KIs im Rennen:`, allEndpoints.map(e => `${e.name}(${getKIScore(e.name).toFixed(0)})`).join(', '));
+
+            // ALLE KIs PARALLEL starten!
+            const results = [];
+            const startTime = Date.now();
+
+            const promises = allEndpoints.map(async (endpoint) => {
+                const kiStartTime = Date.now();
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s Timeout
+
+                    const result = await Promise.race([
+                        endpoint.call(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+                    ]);
+
+                    clearTimeout(timeoutId);
+                    const responseTime = Date.now() - kiStartTime;
+
+                    if (result) {
+                        const quality = scoreResponse(result, text);
+                        console.log(`✅ ${endpoint.name}: ${responseTime}ms, Q:${quality} ${endpoint.premium ? '⭐' : '🆓'}`);
+                        trackKISuccess(endpoint.name, true, responseTime, quality);
+
+                        results.push({
+                            name: endpoint.name,
+                            result: result,
+                            time: responseTime,
+                            quality: quality,
+                            premium: endpoint.premium,
+                            score: getKIScore(endpoint.name)
+                        });
+                    } else {
+                        trackKISuccess(endpoint.name, false, responseTime, 0);
                     }
                 } catch (e) {
-                    console.log('Gemini Agent failed:', e);
+                    trackKISuccess(endpoint.name, false, Date.now() - kiStartTime, 0);
+                    console.log(`❌ ${endpoint.name}: ${e.message}`);
                 }
+            });
+
+            // Warte auf ALLE oder max. 10 Sekunden
+            await Promise.race([
+                Promise.all(promises),
+                new Promise(resolve => setTimeout(resolve, 10000))
+            ]);
+
+            // Kurz warten für späte Antworten
+            await new Promise(r => setTimeout(r, 500));
+
+            const totalTime = Date.now() - startTime;
+            console.log(`⏱️ Ensemble komplett in ${totalTime}ms, ${results.length}/${allEndpoints.length} Antworten`);
+
+            if (results.length === 0) {
+                console.log('❌ Keine KI hat geantwortet - nutze lokale Analyse');
+                updateKIStatus('basic', true);
+                return simpleTextParsing(text);
             }
 
-            // Fallback 3: Kostenlose KI (keine API-Key nötig!)
-            console.log('🆓 Versuche kostenlose KI...');
-            try {
-                const result = await callFreeAI(systemPrompt, `Analysiere diesen Baustellenbericht:\n\n"${text}"`);
-                if (result) {
-                    updateKIStatus('free', true);
-                    return result;
-                }
-            } catch (e) {
-                console.log('Free AI failed:', e);
+            // BESTE ANTWORT auswählen (Qualität + Speed + Historie)
+            results.sort((a, b) => {
+                // Premium-KIs bekommen Bonus
+                const premiumBonusA = a.premium ? 10 : 0;
+                const premiumBonusB = b.premium ? 10 : 0;
+
+                const scoreA = (a.quality * 0.4) + ((100 - a.time/100) * 0.25) + (a.score * 0.25) + premiumBonusA;
+                const scoreB = (b.quality * 0.4) + ((100 - b.time/100) * 0.25) + (b.score * 0.25) + premiumBonusB;
+                return scoreB - scoreA;
+            });
+
+            const winner = results[0];
+            console.log(`🏆 GEWINNER: ${winner.name} (Q:${winner.quality}, ${winner.time}ms, Score:${winner.score.toFixed(1)})`);
+
+            // Zeige alle Teilnehmer
+            if (results.length > 1) {
+                console.log('📊 Alle Ergebnisse:', results.map(r => `${r.name}:${r.quality}`).join(', '));
             }
 
-            // Fallback 4: Einfache Textanalyse ohne KI
-            console.log('📝 Verwende einfache Textanalyse...');
-            updateKIStatus('basic', true);
-            return simpleTextParsing(text);
+            // Update KI-Status
+            if (winner.premium) {
+                updateKIStatus(winner.name.includes('Groq') ? 'groq' : 'gemini', true);
+            } else {
+                updateKIStatus('free', true);
+            }
+
+            // Speichere Ensemble-Ergebnis für Lernen
+            const ensembleResult = {
+                winner: winner.name,
+                quality: winner.quality,
+                time: winner.time,
+                participants: results.length,
+                allResults: results.map(r => ({ name: r.name, quality: r.quality, time: r.time })),
+                timestamp: new Date().toISOString()
+            };
+            const history = JSON.parse(localStorage.getItem('kiEnsembleHistory') || '[]');
+            history.push(ensembleResult);
+            if (history.length > 100) history.shift();
+            localStorage.setItem('kiEnsembleHistory', JSON.stringify(history));
+
+            // Aus dem Bericht lernen (Wissensbasis aktualisieren)
+            saveToWissensbasis(text, winner.result);
+
+            return winner.result;
         }
 
         // ===== v3.5: KI-ENSEMBLE SYSTEM (Alle KIs arbeiten zusammen) =====
