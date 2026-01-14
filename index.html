@@ -2264,15 +2264,17 @@
             </div>
 
             <!-- V3.4: KI-AGENT - Sprich einmal, fülle alles aus -->
+            <!-- V3.5.1: NEU - Sammelmodus für mehrfaches Einsprechen -->
             <div class="agent-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 16px; padding: 20px; margin: 15px 0; color: white;">
                 <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                     <div style="font-size: 40px;">🤖</div>
                     <div>
-                        <h3 style="margin: 0; font-size: 18px;">KI-Agent: Sprich einmal, fülle alles aus</h3>
-                        <p style="margin: 5px 0 0; opacity: 0.9; font-size: 13px;">Beschreibe deinen Tag - der Agent füllt alle Felder automatisch</p>
+                        <h3 style="margin: 0; font-size: 18px;">KI-Agent: Sprich & Sammle</h3>
+                        <p style="margin: 5px 0 0; opacity: 0.9; font-size: 13px;">Sprich mehrfach ein - KI verarbeitet erst auf Knopfdruck</p>
                     </div>
                 </div>
 
+                <!-- SPRECH-BUTTON -->
                 <button id="agentButton"
                         onmousedown="startAgentRecording(event)"
                         onmouseup="stopAgentRecording(event)"
@@ -2283,12 +2285,38 @@
                         style="width: 100%; padding: 20px; background: rgba(255,255,255,0.2); border: 2px dashed rgba(255,255,255,0.5); border-radius: 12px; color: white; font-size: 16px; cursor: pointer; transition: all 0.3s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation;">
                     <div style="font-size: 30px; margin-bottom: 8px; pointer-events: none;">🎤</div>
                     <div style="font-weight: bold; pointer-events: none;">Gedrückt halten & Bericht einsprechen</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px; pointer-events: none;">z.B. "Heute bei Müller, 25qm Fliesen verlegt, 3 Mann, 8 Stunden..."</div>
+                    <div style="font-size: 12px; opacity: 0.8; margin-top: 5px; pointer-events: none;">Mehrfach sprechen möglich - Text wird gesammelt</div>
                 </button>
 
+                <!-- AUFNAHME-STATUS -->
                 <div id="agentStatus" style="display: none; margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.15); border-radius: 8px;">
                     <div id="agentStatusText" style="font-size: 14px;">🎤 Aufnahme läuft...</div>
                     <div id="agentPreview" style="font-size: 13px; opacity: 0.8; margin-top: 8px; font-style: italic;"></div>
+                </div>
+
+                <!-- GESAMMELTER TEXT (NEU v3.5.1) -->
+                <div id="collectedTextSection" style="display: none; margin-top: 15px; background: rgba(255,255,255,0.95); border-radius: 12px; padding: 15px; color: #333;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="font-weight: bold; color: #475569;">
+                            📝 Gesammelter Text (<span id="collectedCount">0</span> Eingaben)
+                        </div>
+                        <button onclick="clearCollectedText()" style="background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;">
+                            🗑️ Leeren
+                        </button>
+                    </div>
+                    <div id="collectedTextDisplay" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; font-size: 13px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; color: #334155;">
+                        <!-- Gesammelter Text wird hier angezeigt -->
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; margin-top: 8px; text-align: center;">
+                        💡 Sprich weiter ein oder klicke "KI Verarbeiten" wenn du fertig bist
+                    </div>
+
+                    <!-- VERARBEITEN BUTTON -->
+                    <button id="processCollectedBtn" onclick="processCollectedText()"
+                            style="width: 100%; margin-top: 12px; padding: 15px; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 24px;">🚀</span>
+                        <span>KI Verarbeiten - Alle KIs analysieren</span>
+                    </button>
                 </div>
 
                 <!-- FEEDBACK-SYSTEM FÜR KI-LERNEN -->
@@ -4936,6 +4964,8 @@ Gib NUR valides JSON zurück, keine Erklärung.`;
             updateWissensbasisCounts();
             // KI-Lernstatistik aktualisieren
             updateKIStats();
+            // v3.5.1: Gesammelte Texte wiederherstellen
+            restoreCollectedTexts();
             // Firebase Cloud-Sync initialisieren
             initFirebase();
 
@@ -5276,6 +5306,156 @@ Text: ${prompt}`
         let agentIsRecording = false;
         let agentFullText = '';
 
+        // v3.5.1: Sammelmodus - Text wird gesammelt bis Benutzer "Verarbeiten" klickt
+        let collectedTexts = []; // Array aller eingesprochenen Texte
+        let collectedTextTotal = ''; // Gesamter Text zum Verarbeiten
+
+        // Gesammelten Text zur Anzeige hinzufügen
+        function addToCollectedText(text) {
+            if (!text || text.trim().length < 5) return;
+
+            const trimmedText = text.trim();
+            collectedTexts.push({
+                text: trimmedText,
+                timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+            });
+            collectedTextTotal += (collectedTextTotal ? '\n' : '') + trimmedText;
+
+            // UI aktualisieren
+            const section = document.getElementById('collectedTextSection');
+            const display = document.getElementById('collectedTextDisplay');
+            const count = document.getElementById('collectedCount');
+
+            if (section) section.style.display = 'block';
+            if (count) count.textContent = collectedTexts.length;
+            if (display) {
+                display.innerHTML = collectedTexts.map((t, i) =>
+                    `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px; border-left: 3px solid #667eea;">
+                        <div style="font-size: 10px; color: #94a3b8; margin-bottom: 3px;">🕐 ${t.timestamp} - Eingabe ${i + 1}</div>
+                        <div>"${t.text}"</div>
+                    </div>`
+                ).join('');
+                display.scrollTop = display.scrollHeight;
+            }
+
+            // In localStorage speichern (für Session-Wiederherstellung)
+            localStorage.setItem('collectedTexts', JSON.stringify(collectedTexts));
+            localStorage.setItem('collectedTextTotal', collectedTextTotal);
+
+            showToast(`✅ Text ${collectedTexts.length} gesammelt`, 'success');
+        }
+
+        // Gesammelten Text leeren
+        function clearCollectedText() {
+            if (collectedTexts.length > 0 && !confirm('⚠️ Alle gesammelten Texte löschen?')) return;
+
+            collectedTexts = [];
+            collectedTextTotal = '';
+            localStorage.removeItem('collectedTexts');
+            localStorage.removeItem('collectedTextTotal');
+
+            const section = document.getElementById('collectedTextSection');
+            const display = document.getElementById('collectedTextDisplay');
+            const count = document.getElementById('collectedCount');
+
+            if (section) section.style.display = 'none';
+            if (display) display.innerHTML = '';
+            if (count) count.textContent = '0';
+
+            showToast('🗑️ Gesammelte Texte gelöscht', 'info');
+        }
+
+        // Gesammelten Text mit allen KIs verarbeiten
+        async function processCollectedText() {
+            if (!collectedTextTotal || collectedTextTotal.trim().length < 10) {
+                showToast('⚠️ Bitte erst Text einsprechen', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('processCollectedBtn');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<span style="font-size: 24px;">⏳</span><span>KIs arbeiten zusammen...</span>';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            showToast('🤖🤖🤖 Alle KIs analysieren parallel...', 'info');
+
+            try {
+                console.log('🚀 Starte Ensemble-Verarbeitung für gesammelten Text...');
+                console.log(`📝 ${collectedTexts.length} Eingaben, ${collectedTextTotal.length} Zeichen`);
+
+                const result = await processAgentText(collectedTextTotal);
+
+                if (result) {
+                    fillFormFromAgent(result);
+
+                    btn.innerHTML = '<span style="font-size: 24px;">✅</span><span>Fertig! Formular ausgefüllt</span>';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    showToast('✅ Alle KIs haben das Formular ausgefüllt!', 'success');
+
+                    // Für Feedback speichern
+                    window.lastAgentInput = collectedTextTotal;
+                    window.lastAgentResult = result;
+
+                    // Feedback-Section anzeigen
+                    setTimeout(() => {
+                        showFeedbackSection();
+                    }, 1000);
+
+                    // Text-Sammlung NICHT automatisch leeren (Benutzer kann nochmal verarbeiten)
+                } else {
+                    throw new Error('Keine Antwort von den KIs');
+                }
+            } catch (e) {
+                console.error('Ensemble-Fehler:', e);
+                btn.innerHTML = '<span style="font-size: 24px;">❌</span><span>Fehler - Nochmal versuchen</span>';
+                btn.style.background = '#ef4444';
+                showToast('❌ Fehler: ' + e.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.style.opacity = '1';
+
+            // Button nach 3s zurücksetzen
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }, 3000);
+        }
+
+        // Session wiederherstellen (beim Laden)
+        function restoreCollectedTexts() {
+            const savedTexts = localStorage.getItem('collectedTexts');
+            const savedTotal = localStorage.getItem('collectedTextTotal');
+
+            if (savedTexts && savedTotal) {
+                try {
+                    collectedTexts = JSON.parse(savedTexts);
+                    collectedTextTotal = savedTotal;
+
+                    if (collectedTexts.length > 0) {
+                        const section = document.getElementById('collectedTextSection');
+                        const display = document.getElementById('collectedTextDisplay');
+                        const count = document.getElementById('collectedCount');
+
+                        if (section) section.style.display = 'block';
+                        if (count) count.textContent = collectedTexts.length;
+                        if (display) {
+                            display.innerHTML = collectedTexts.map((t, i) =>
+                                `<div style="margin-bottom: 8px; padding: 8px; background: white; border-radius: 6px; border-left: 3px solid #667eea;">
+                                    <div style="font-size: 10px; color: #94a3b8; margin-bottom: 3px;">🕐 ${t.timestamp} - Eingabe ${i + 1}</div>
+                                    <div>"${t.text}"</div>
+                                </div>`
+                            ).join('');
+                        }
+                        console.log(`📝 ${collectedTexts.length} gesammelte Texte wiederhergestellt`);
+                    }
+                } catch (e) {
+                    console.log('Fehler beim Wiederherstellen:', e);
+                }
+            }
+        }
+
         // Firmen-Wissensbasis laden
         function getWissensbasis() {
             return {
@@ -5394,7 +5574,7 @@ Text: ${prompt}`
             }
         }
 
-        // Agent-Aufnahme stoppen und verarbeiten (mit Event-Handling)
+        // Agent-Aufnahme stoppen - v3.5.1: SAMMELT Text statt sofort zu verarbeiten
         async function stopAgentRecording(event) {
             // Verhindere Kopier-Popup auf Touch-Geräten
             if (event) {
@@ -5421,13 +5601,27 @@ Text: ${prompt}`
             btn.style.borderColor = 'rgba(255,255,255,0.5)';
 
             const text = agentFullText.trim();
+            agentFullText = ''; // Reset für nächste Aufnahme
 
-            if (!text || text.length < 10) {
+            if (!text || text.length < 5) {
                 status.style.display = 'none';
-                showToast('⚠️ Bitte länger sprechen', 'info');
+                showToast('⚠️ Bitte etwas sprechen', 'info');
                 return;
             }
 
+            // v3.5.1: Text SAMMELN statt sofort verarbeiten
+            statusText.textContent = '✅ Text gesammelt! Weiter sprechen oder "KI Verarbeiten" klicken.';
+            addToCollectedText(text);
+
+            // Status nach 2s ausblenden
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 2000);
+
+            // Alter Code - wird nicht mehr verwendet, aber für Fallback aufbewahrt
+            return;
+
+            /* ALTE LOGIK - deaktiviert für Sammelmodus
             statusText.textContent = '🤖 Agent analysiert deinen Bericht...';
             showToast('🤖 Agent verarbeitet...', 'info');
 
@@ -13256,7 +13450,7 @@ brew install mkcert</div>
             for (const arr of Object.values(baustellenDatenbank.formulierungen)) {
                 formCount += arr.length;
             }
-            console.log(`📊 Baustellenbericht v3.5.0 Datenbank geladen:`);
+            console.log(`📊 Baustellenbericht v3.5.1 Datenbank geladen:`);
             console.log(`   ✅ ${autoCount} Autokorrekturen`);
             console.log(`   ✅ ${formCount} Formulierungen in ${formCategories} Kategorien`);
 
