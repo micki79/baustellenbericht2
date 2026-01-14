@@ -2019,77 +2019,92 @@
         <button class="tab" onclick="openKISettings()" style="margin-left: auto; background: linear-gradient(135deg, #667eea, #764ba2);">⚙️ KI</button>
     </div>
 
-    <!-- KI EINSTELLUNGEN MODAL -->
+    <!-- KI EINSTELLUNGEN MODAL (v3.4.0 - Redesigned) -->
     <div id="kiSettingsModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:10003; align-items:center; justify-content:center; padding:15px;">
         <div style="background:white; border-radius:16px; max-width:500px; width:100%; max-height:90vh; overflow-y:auto;">
-            <div style="padding:16px 20px; background:linear-gradient(135deg, #667eea, #764ba2); border-radius:16px 16px 0 0;">
-                <h3 style="margin:0; color:white; font-size:18px;">🤖 KI-Einstellungen</h3>
-                <p style="margin:5px 0 0; color:rgba(255,255,255,0.8); font-size:12px;">Kostenlose API-Keys für intelligente Textverbesserung</p>
+            <div style="padding:16px 20px; background:linear-gradient(135deg, #10b981, #059669); border-radius:16px 16px 0 0;">
+                <h3 style="margin:0; color:white; font-size:18px;">🤖 KI-Status</h3>
+                <p style="margin:5px 0 0; color:rgba(255,255,255,0.9); font-size:12px;">Automatische KI-Unterstützung aktiv</p>
             </div>
             <div style="padding:20px;">
-                <!-- Groq -->
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; font-weight:bold; margin-bottom:8px; color:#1e40af;">
-                        🚀 Groq API Key <span style="font-weight:normal; color:#64748b;">(schnell)</span>
-                    </label>
-                    <input type="password" id="groqApiKey" placeholder="gsk_..."
-                           style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace;"
-                           onchange="saveKISettings()">
-                    <a href="https://console.groq.com/keys" target="_blank"
-                       style="font-size:12px; color:#667eea; text-decoration:none;">
-                       → Kostenlosen Key holen
-                    </a>
-                </div>
-
-                <!-- Gemini -->
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; font-weight:bold; margin-bottom:8px; color:#059669;">
-                        ✨ Google Gemini API Key <span style="font-weight:normal; color:#64748b;">(Backup)</span>
-                    </label>
-                    <input type="password" id="geminiApiKey" placeholder="AIza..."
-                           style="width:100%; padding:12px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace;"
-                           onchange="saveKISettings()">
-                    <a href="https://aistudio.google.com/apikey" target="_blank"
-                       style="font-size:12px; color:#667eea; text-decoration:none;">
-                       → Kostenlosen Key holen
-                    </a>
-                </div>
-
-                <!-- Status -->
-                <div id="kiStatus" style="padding:12px; background:#f1f5f9; border-radius:8px; margin-bottom:15px;">
-                    <div style="font-size:13px; color:#64748b;">Status wird geladen...</div>
-                </div>
-
-                <!-- Info -->
-                <div style="background:#fef3c7; padding:12px; border-radius:8px; border-left:4px solid #f59e0b;">
-                    <div style="font-size:12px; color:#92400e;">
-                        <strong>💡 So funktioniert's:</strong><br>
-                        1. Hole dir kostenlose API-Keys (Links oben)<br>
-                        2. Füge sie hier ein<br>
-                        3. Bei Spracheingabe erstellt KI professionelle Zusammenfassungen
+                <!-- Haupt-Status (KOSTENLOSE KI) -->
+                <div id="kiStatusMain" style="padding:16px; background:linear-gradient(135deg, #ecfdf5, #d1fae5); border-radius:12px; margin-bottom:15px; border:2px solid #10b981;">
+                    <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                        <span style="font-size:32px;">✅</span>
+                        <div>
+                            <div style="font-size:16px; font-weight:bold; color:#065f46;">KI ist einsatzbereit!</div>
+                            <div style="font-size:12px; color:#047857;">Kostenlose KI-Dienste werden automatisch genutzt</div>
+                        </div>
+                    </div>
+                    <div style="font-size:12px; color:#065f46; padding:10px; background:rgba(255,255,255,0.5); border-radius:8px;">
+                        <strong>Verfügbare Dienste:</strong><br>
+                        🌸 Pollinations AI (Mistral, OpenAI, Claude)<br>
+                        ⬛ BlackBox AI<br>
+                        🔥 DeepInfra (Llama 2)
                     </div>
                 </div>
 
-                <!-- Kostenlose KI Info (NEU v3.4) -->
-                <div style="background:#ecfdf5; padding:12px; border-radius:8px; border-left:4px solid #10b981; margin-top:10px;">
-                    <div style="font-size:12px; color:#065f46;">
-                        <strong>🆓 Kostenlose KI (ohne API-Key):</strong><br>
-                        Die App funktioniert auch OHNE API-Key! Wir nutzen automatisch:<br>
-                        • 🌸 Pollinations AI (Mistral, OpenAI, Claude)<br>
-                        • ⬛ BlackBox AI<br>
-                        • 🔥 DeepInfra (Llama)<br><br>
-                        <em>Mit eigenem API-Key: schnellere & bessere Antworten</em>
-                    </div>
-                </div>
-            </div>
-            <div style="padding:12px 20px 20px; display:flex; gap:10px;">
-                <button onclick="closeKISettings()"
-                        style="flex:1; padding:12px; background:#e5e7eb; color:#475569; border:none; border-radius:8px; cursor:pointer;">
-                    Schließen
+                <!-- Quick Test Button -->
+                <button onclick="testFreeKI()" id="testFreeKIBtn"
+                        style="width:100%; padding:14px; background:linear-gradient(135deg, #10b981, #059669); color:white; border:none; border-radius:10px; font-weight:bold; font-size:15px; cursor:pointer; margin-bottom:15px; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    🚀 KI jetzt testen
                 </button>
-                <button onclick="testKIConnection()"
-                        style="flex:1; padding:12px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
-                    🔌 Verbindung testen
+
+                <!-- Erweitert: Eigene API-Keys (ausklappbar) -->
+                <details style="margin-top:10px;">
+                    <summary style="padding:12px; background:#f8fafc; border-radius:8px; cursor:pointer; font-weight:bold; color:#475569; list-style:none; display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:12px;">▶</span> ⚙️ Erweitert: Eigene API-Keys (optional)
+                    </summary>
+                    <div style="padding:15px; background:#f8fafc; border-radius:0 0 8px 8px; margin-top:-5px;">
+                        <p style="font-size:12px; color:#64748b; margin:0 0 15px;">
+                            Mit eigenen API-Keys bekommst du schnellere & bessere Antworten.
+                        </p>
+
+                        <!-- Groq -->
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block; font-weight:bold; margin-bottom:6px; color:#1e40af; font-size:13px;">
+                                🚀 Groq API Key <span style="font-weight:normal; color:#64748b;">(am schnellsten)</span>
+                            </label>
+                            <input type="password" id="groqApiKey" placeholder="gsk_..."
+                                   style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace; font-size:12px;"
+                                   onchange="saveKISettings()">
+                            <a href="https://console.groq.com/keys" target="_blank"
+                               style="font-size:11px; color:#667eea; text-decoration:none;">
+                               → Kostenlosen Key holen
+                            </a>
+                        </div>
+
+                        <!-- Gemini -->
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block; font-weight:bold; margin-bottom:6px; color:#059669; font-size:13px;">
+                                ✨ Google Gemini API Key <span style="font-weight:normal; color:#64748b;">(Backup)</span>
+                            </label>
+                            <input type="password" id="geminiApiKey" placeholder="AIza..."
+                                   style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-family:monospace; font-size:12px;"
+                                   onchange="saveKISettings()">
+                            <a href="https://aistudio.google.com/apikey" target="_blank"
+                               style="font-size:11px; color:#667eea; text-decoration:none;">
+                               → Kostenlosen Key holen
+                            </a>
+                        </div>
+
+                        <!-- API-Key Status -->
+                        <div id="kiStatus" style="padding:10px; background:#fff; border-radius:8px; font-size:12px;">
+                            <div style="color:#64748b;">API-Key Status wird geladen...</div>
+                        </div>
+
+                        <!-- Test Button für API-Keys -->
+                        <button onclick="testKIConnection()"
+                                style="width:100%; padding:10px; margin-top:10px; background:#667eea; color:white; border:none; border-radius:8px; font-size:13px; cursor:pointer;">
+                            🔌 API-Keys testen
+                        </button>
+                    </div>
+                </details>
+            </div>
+            <div style="padding:12px 20px 20px;">
+                <button onclick="closeKISettings()"
+                        style="width:100%; padding:14px; background:#e5e7eb; color:#475569; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:15px;">
+                    Schließen
                 </button>
             </div>
         </div>
@@ -5018,22 +5033,26 @@ Gib NUR valides JSON zurück, keine Erklärung.`;
             const geminiKey = localStorage.getItem('geminiApiKey');
             const statusEl = document.getElementById('kiStatus');
 
-            let html = '<div style="font-size:13px;">';
+            if (!statusEl) return;
+
+            let html = '<div style="font-size:12px;">';
 
             if (groqKey) {
-                html += '<div style="color:#22c55e; margin-bottom:5px;">✅ Groq: Konfiguriert</div>';
+                html += '<div style="color:#22c55e; margin-bottom:4px;">✅ Groq: Konfiguriert (Premium)</div>';
             } else {
-                html += '<div style="color:#ef4444; margin-bottom:5px;">❌ Groq: Nicht konfiguriert</div>';
+                html += '<div style="color:#94a3b8; margin-bottom:4px;">○ Groq: Nicht konfiguriert</div>';
             }
 
             if (geminiKey) {
-                html += '<div style="color:#22c55e;">✅ Gemini: Konfiguriert</div>';
+                html += '<div style="color:#22c55e;">✅ Gemini: Konfiguriert (Backup)</div>';
             } else {
-                html += '<div style="color:#ef4444;">❌ Gemini: Nicht konfiguriert</div>';
+                html += '<div style="color:#94a3b8;">○ Gemini: Nicht konfiguriert</div>';
             }
 
-            if (!groqKey && !geminiKey) {
-                html += '<div style="color:#f59e0b; margin-top:8px; font-size:12px;">⚠️ Mindestens ein API-Key wird für KI-Funktionen benötigt</div>';
+            if (groqKey || geminiKey) {
+                html += '<div style="color:#10b981; margin-top:8px; font-size:11px;">🚀 Premium KI wird verwendet</div>';
+            } else {
+                html += '<div style="color:#64748b; margin-top:8px; font-size:11px;">💡 Kostenlose KI wird automatisch genutzt</div>';
             }
 
             html += '</div>';
@@ -5079,6 +5098,50 @@ Gib NUR valides JSON zurück, keine Erklärung.`;
             }
 
             showToast('❌ Verbindung fehlgeschlagen. Bitte API-Keys prüfen.', 'error');
+        }
+
+        // ===== KOSTENLOSE KI TESTEN (v3.4.0) =====
+        async function testFreeKI() {
+            const btn = document.getElementById('testFreeKIBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Teste kostenlose KI...';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            try {
+                const result = await callFreeAISimple('Antworte nur mit dem Wort: Funktioniert');
+
+                if (result && result.toLowerCase().includes('funktioniert')) {
+                    btn.innerHTML = '✅ KI funktioniert!';
+                    btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    showToast('✅ Kostenlose KI funktioniert einwandfrei!', 'success');
+
+                    // Update Status
+                    const statusMain = document.getElementById('kiStatusMain');
+                    if (statusMain) {
+                        statusMain.querySelector('div > div:first-child').textContent = 'KI getestet & funktioniert!';
+                    }
+                } else if (result) {
+                    btn.innerHTML = '✅ KI antwortet!';
+                    showToast('✅ KI ist verbunden: ' + result.substring(0, 50), 'success');
+                } else {
+                    throw new Error('Keine Antwort');
+                }
+            } catch (e) {
+                console.log('Free KI Test fehlgeschlagen:', e);
+                btn.innerHTML = '⚠️ Erneut versuchen';
+                btn.style.background = '#f59e0b';
+                showToast('⚠️ KI-Dienst momentan nicht erreichbar. Bitte später erneut versuchen.', 'warning');
+            }
+
+            btn.disabled = false;
+            btn.style.opacity = '1';
+
+            // Reset nach 3 Sekunden
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            }, 3000);
         }
 
         // ===== GROQ API =====
